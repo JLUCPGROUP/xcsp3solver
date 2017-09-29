@@ -10,8 +10,8 @@
 namespace cudacp {
 ////////////////////////////////////////////////////////////////////
 HVar::HVar(const int id, const string name, const int min_val,
-		const int max_val) :
-		id(id), name(name) {
+	const int max_val) :
+	id(id), name(name) {
 	int j = 0;
 	const int size = max_val - min_val + 1;
 	vals.resize(size);
@@ -23,7 +23,7 @@ HVar::HVar(const int id, const string name, const int min_val,
 }
 
 HVar::HVar(const int id, const string name, vector<int>& v) :
-		id(id), name(name) {
+	id(id), name(name) {
 	vals.resize(vals.size());
 	for (size_t i = 0; i < vals.size(); ++i) {
 		val_map[v[i]] = i;
@@ -39,12 +39,11 @@ void HVar::Show() {
 	cout << endl;
 }
 
-HVar::~HVar() {
-}
+HVar::~HVar() {}
 ////////////////////////////////////////////////////////////////////
 HTab::HTab(const int id, const bool sem, vector<vector<int>>& ts,
-		vector<HVar*>& scp) :
-		id(id), semantics(sem) {
+	vector<HVar*>& scp) :
+	id(id), semantics(sem) {
 	scope = scp;
 	int all_size = 1;
 	for (auto i : scp)
@@ -65,7 +64,8 @@ HTab::HTab(const int id, const bool sem, vector<vector<int>>& ts,
 		if (!sem) {
 			if (find(ts.begin(), ts.end(), ori_t_) == ts.end())
 				tuples[j++] = std_t_;
-		} else {
+		}
+		else {
 			if (find(ts.begin(), ts.end(), ori_t_) != ts.end())
 				tuples[j++] = std_t_;
 		}
@@ -73,7 +73,7 @@ HTab::HTab(const int id, const bool sem, vector<vector<int>>& ts,
 
 	tmp_t_.resize(scope.size());
 	semantics = true;
-//	tuples = ts;
+	//	tuples = ts;
 }
 
 //void HTab::GetSTDTuple(vector<int>& tuple) {
@@ -132,7 +132,7 @@ ostream & operator<<(ostream &os, const vector<HVar*>& a) {
 void HTab::Show() {
 	const string sem = semantics ? "supports" : "conflicts";
 	cout << "id: " << id << " semantics: " << sem << " size: " << tuples.size()
-			<< " arity:" << scope.size() << " scope = {" << scope << endl;
+		<< " arity:" << scope.size() << " scope = {" << scope << endl;
 	for (auto t : tuples) {
 		cout << "( ";
 		for (auto i : t)
@@ -145,17 +145,17 @@ void HTab::Show() {
 
 ////////////////////////////////////////////////////////////////////
 HModel::HModel() {
-// TODO Auto-generated constructor stub
+	// TODO Auto-generated constructor stub
 
 }
 
 void HModel::AddVar(const int id, const string name, const int min_val,
-		const int max_val) {
+	const int max_val) {
 	HVar* var = new HVar(id, name, min_val, max_val);
 	var_n_[name] = var;
-//	if ((size_t) id >= vars.size())
-//		vars.reserve(id + 1);
-//	vars[id] = var;
+	//	if ((size_t) id >= vars.size())
+	//		vars.reserve(id + 1);
+	//	vars[id] = var;
 	vars.push_back(var);
 	mds_ = max(mds_, var->vals.size());
 }
@@ -163,29 +163,29 @@ void HModel::AddVar(const int id, const string name, const int min_val,
 void HModel::AddVar(const int id, const string name, vector<int>& v) {
 	HVar* var = new HVar(id, name, v);
 	var_n_[name] = var;
-//	if ((size_t) id >= vars.size())
-//		vars.reserve(id + 1);
-//	vars[id] = var;
+	//	if ((size_t) id >= vars.size())
+	//		vars.reserve(id + 1);
+	//	vars[id] = var;
 	vars.push_back(var);
 	mds_ = max(mds_, var->vals.size());
 }
 
-void HModel::AddTab(const int id, const bool sem, vector<vector<int>>& ts,
-		vector<HVar*>& scp) {
+void HModel::AddTab(const int id, const bool sem, vector<vector<int>>& ts, vector<HVar*>& scp) {
 	HTab* t = new HTab(id, sem, ts, scp);
 	tabs.push_back(t);
-//	if ((size_t) id >= tabs.size())
-//		tabs.reserve(id + 1);
-//	tabs[id] = t;
 	mas_ = max(mas_, t->scope.size());
 }
 
 void HModel::AddTab(const int id, const bool sem, vector<vector<int>>& ts,
-		vector<string>& scp) {
+	vector<string>& scp) {
 	vector<HVar*> scope(scp.size());
 	for (size_t i = 0; i < scp.size(); ++i)
 		scope[i] = var_n_[scp[i]];
 	AddTab(id, sem, ts, scope);
+}
+
+void HModel::AddTab(const HTab* t) {
+	AddTab(t->id, t->semantics, t->tuples, t->scope);
 }
 
 void HModel::Show() {

@@ -297,27 +297,27 @@ void displayList(vector<XVariable *> &list, string separator = " ") {
 
 
 void XCSP3PrintCallbacks::beginInstance(InstanceType type) {
-	cout << "Start Instance - type=" << type << endl;
+	//cout << "Start Instance - type=" << type << endl;
 }
 
 
 void XCSP3PrintCallbacks::endInstance() {
-	cout << "End SAX parsing " << endl;
+	//cout << "End SAX parsing " << endl;
 }
 
 
 void XCSP3PrintCallbacks::beginVariables() {
-	cout << " start variables declaration" << endl;
+	//cout << " start variables declaration" << endl;
 }
 
 
 void XCSP3PrintCallbacks::endVariables() {
-	cout << " end variables declaration" << endl << endl;
+	//cout << " end variables declaration" << endl << endl;
 }
 
 
 void XCSP3PrintCallbacks::beginVariableArray(string id) {
-	cout << "    array: " << id << endl;
+	//cout << "    array: " << id << endl;
 }
 
 
@@ -325,12 +325,12 @@ void XCSP3PrintCallbacks::endVariableArray() {}
 
 
 void XCSP3PrintCallbacks::beginConstraints() {
-	cout << " start constraints declaration" << endl;
+	//cout << " start constraints declaration" << endl;
 }
 
 
 void XCSP3PrintCallbacks::endConstraints() {
-	cout << "\n end constraints declaration" << endl << endl;
+	//cout << "\n end constraints declaration" << endl << endl;
 }
 
 
@@ -405,7 +405,9 @@ void XCSP3PrintCallbacks::buildConstraintExtension(string id, XVariable *variabl
 
 // string id, vector<XVariable *> list, bool support, bool hasStar
 void XCSP3PrintCallbacks::buildConstraintExtensionAs(string id, vector<XVariable *>, bool, bool) {
-	cout << "\n    extension constraint similar as previous one: " << id << endl;
+	/*cout << "\n    extension constraint similar as previous one: " << id << endl;*/
+	hm->AddTab(con_cnt, support, tuples, scope);
+	con_cnt++;
 }
 
 

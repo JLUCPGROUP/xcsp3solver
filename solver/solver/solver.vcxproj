@@ -154,8 +154,10 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CPUSolver.cpp" />
     <ClCompile Include="GModel.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SAC1.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="BMPath.xml" />
@@ -169,7 +171,9 @@
   <ItemGroup>
     <ClInclude Include="..\include\Timer.h" />
     <ClInclude Include="BuildGModel.h" />
+    <ClInclude Include="CPUSolver.h" />
     <ClInclude Include="GModel.h" />
+    <ClInclude Include="SAC1.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

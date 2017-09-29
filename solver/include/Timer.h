@@ -5,8 +5,7 @@
  *      Author: leezear
  */
 
-#ifndef TIMER_H_
-#define TIMER_H_
+#pragma once
 #include<chrono>
 using namespace std;
 using namespace std::chrono;
@@ -57,4 +56,3 @@ private:
 	time_point<high_resolution_clock> m_begin;
 };
 }
-#endif /* TIMER_H_ */

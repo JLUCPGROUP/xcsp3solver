@@ -5,10 +5,11 @@
  *      Author: leezear
  */
 
-#ifndef GMODEL_H_
-#define GMODEL_H_
+#pragma once
 #include <iostream>
 #include <gecode/int.hh>
+#include <gecode/minimodel.hh>
+#include <gecode/search.hh>
 #include "HModel.h"
 
 namespace cudacp {
@@ -28,4 +29,3 @@ public:
 
 } /* namespace cudacp */
 
-#endif /* GMODEL_H_ */

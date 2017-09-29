@@ -5,8 +5,7 @@
  *      Author: leezear
  */
 
-#ifndef BUILDGECODEMODEL_H_
-#define BUILDGECODEMODEL_H_
+#pragma once
 
 #include "HModel.h"
 #include "GModel.h"
@@ -38,4 +37,3 @@ static void BuildGModel(const HModel* h_model, GModel* g_model) {
 	}
 }
 }
-#endif /* BUILDGECODEMODEL_H_ */

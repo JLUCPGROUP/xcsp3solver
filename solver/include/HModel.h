@@ -45,7 +45,7 @@ public:
 	vector<HVar*> scope;
 	vector<vector<int>> tuples;
 	HTab(const int id, const bool sem, vector<vector<int>>& ts,
-			vector<HVar*>& scp);
+		vector<HVar*>& scp);
 	int GetAllSize() const;
 	void GetSTDTuple(vector<int>& src_tuple, vector<int>& std_tuple);
 	void GetORITuple(vector<int>& std_tuple, vector<int>& ori_tuple);
@@ -64,16 +64,16 @@ public:
 	vector<HVar*> vars;
 	vector<HTab*> tabs;
 	unordered_map<string, HVar*> var_n_;
-//	unordered_map<int, HVar*> var_i_;
+	//	unordered_map<int, HVar*> var_i_;
 	HModel();
 	virtual ~HModel();
 	void AddVar(const int id, const string name, const int min_val,
-			const int max_val);
+		const int max_val);
 	void AddVar(const int id, const string name, vector<int>& v);
-	void AddTab(const int id, const bool sem, vector<vector<int>>& ts,
-			vector<HVar*>& scp);
-	void AddTab(const int id, const bool sem, vector<vector<int>>& ts,
-			vector<string>& scp);
+	void AddTab(const int id, const bool sem, vector<vector<int>>& ts, vector<HVar*>& scp);
+	void AddTab(const int id, const bool sem, vector<vector<int>>& ts, vector<string>& scp);
+	void AddTab(const HTab* t);
+	int max_domain_size() const { return mds_; }
 	void Show();
 private:
 	size_t mds_ = 0;

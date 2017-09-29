@@ -24,6 +24,12 @@
     <ClCompile Include="GModel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="SAC1.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUSolver.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="myxml.xml" />
@@ -39,6 +45,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\include\Timer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SAC1.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CPUSolver.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
