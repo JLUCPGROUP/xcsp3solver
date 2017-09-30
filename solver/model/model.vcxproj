@@ -166,6 +166,7 @@
     <ClInclude Include="..\include\AttributeList.h" />
     <ClInclude Include="..\include\BMFileParser.h" />
     <ClInclude Include="..\include\HModel.h" />
+    <ClInclude Include="..\include\Timer.h" />
     <ClInclude Include="..\include\UTF8String.h" />
     <ClInclude Include="..\include\XCSP3Constants.h" />
     <ClInclude Include="..\include\XCSP3Constraint.h" />

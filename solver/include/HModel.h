@@ -72,7 +72,7 @@ public:
 	void AddVar(const int id, const string name, vector<int>& v);
 	void AddTab(const int id, const bool sem, vector<vector<int>>& ts, vector<HVar*>& scp);
 	void AddTab(const int id, const bool sem, vector<vector<int>>& ts, vector<string>& scp);
-	void AddTab(const HTab* t);
+	void AddTab(HTab* t);
 	int max_domain_size() const { return mds_; }
 	void Show();
 private:

@@ -92,5 +92,8 @@
     <ClInclude Include="..\include\BMFileParser.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\Timer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

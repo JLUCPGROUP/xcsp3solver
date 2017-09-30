@@ -405,8 +405,8 @@ void XCSP3PrintCallbacks::buildConstraintExtension(string id, XVariable *variabl
 
 // string id, vector<XVariable *> list, bool support, bool hasStar
 void XCSP3PrintCallbacks::buildConstraintExtensionAs(string id, vector<XVariable *>, bool, bool) {
-	/*cout << "\n    extension constraint similar as previous one: " << id << endl;*/
-	hm->AddTab(con_cnt, support, tuples, scope);
+	cout << "\n    extension constraint similar as previous one: " << id << endl;
+	hm->AddTab(hm->tabs[con_cnt - 1]);
 	con_cnt++;
 }
 
