@@ -19,12 +19,4 @@
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <Xml Include="BMPath.xml">
-      <Filter>资源文件</Filter>
-    </Xml>
-    <Xml Include="test1.xml">
-      <Filter>资源文件</Filter>
-    </Xml>
-  </ItemGroup>
 </Project>

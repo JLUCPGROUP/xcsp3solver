@@ -4,8 +4,8 @@
     <!--<BMFile id ="0">queens-4_ext.xml</BMFile>-->
     <!--<BMFile id ="0">queens-12_ext.xml</BMFile>-->
     <!--<BMFile id ="0">queens-12.xml</BMFile>-->
-    <BMFile id ="0">E:/Projects/benchmarks/xcsp/Queens-m1-s1/Queens-0012-m1.xml</BMFile>
-    <!--<BMFile id ="0">E:/Projects/benchmarks/xcsp/Random-D-t010/rand-2-40-8-753-010-00.xml</BMFile>-->
+    <!--<BMFile id ="0">E:/Projects/benchmarks/xcsp/Queens-m1-s1/Queens-0012-m1.xml</BMFile>-->
+    <BMFile id ="0">E:/Projects/benchmarks/xcsp/Random-D-t010/rand-2-40-8-753-010-00.xml</BMFile>
     <!--<BMFile id ="0">E:/Projects/benchmarks/xcsp/Random-RB-3-20-20/rand-3-20-20-60-632-01.xml</BMFile>-->
     <!--<BMFile id ="0">XMLFileNeg.xml</BMFile>-->
     <!--<BMFile id ="0">XMLFile.xml</BMFile>-->
