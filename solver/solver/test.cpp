@@ -56,8 +56,13 @@ int main() {
 		return 0;
 	}
 
+	BitSetModel bsm;
+	bsm.initial(hm, gm);
+	bsm.Show();
+
+
 	Timer t2;
-	CPUSolver s(hm, gm);
+	CPUSolver<BitModel, u32> s(hm, gm);
 	int64_t build_time = t2.elapsed();
 	SearchStatistics statistics;
 

@@ -113,6 +113,20 @@ private:
 	HModel *m_;
 	GModel *gm_;
 };
+
+class BitSetModel {
+public:
+	BitSetModel() {};
+	void initial(HModel *hm, GModel* gm);
+	virtual ~BitSetModel() {};
+	vector<vector<vector<bitset<32>>>> bsd;
+	vector<bitset<32>> bd;
+	void Show();
+	int mds;
+	int vs_size;
+protected:
+	GModel *gm_;
+};
 //
 //变量值取值或删值
 class IntVal {
@@ -170,6 +184,7 @@ protected:
 	int max_size_;
 };
 
+template<class T1, class T2>
 class NetworkStack {
 public:
 	NetworkStack() {};
@@ -178,7 +193,7 @@ public:
 	SearchState push_back(const IntVal& val);
 	SearchState reduce_dom(const IntVal& val);
 	SearchState remove_value(const IntVal& val);
-	vector<u32>& nt_back();
+	vector<T2>& nt_back();
 	void pop_back();
 	//bool empty();
 	int size() const;
@@ -187,21 +202,22 @@ public:
 	int select_val(const int var, const ValHeuristic vlh);
 	void restore(const int p);
 	~NetworkStack() {};
-	BitModel bm_;
+	T1 bm_;
 private:
 	HModel* hm_;
 	//bit model
 	//计算删值后网络bitDom的中间变量
-	vector<u32> r_;
+	vector<T2> r_;
 	//赋值栈
 	AssignedStack *I_;
 	//网络栈
-	vector<vector<u32>> s_;
+	vector<vector<T2>> s_;
 	int vs_size_;
 	int mds_;
 	int top_ = 0;
 };
 
+template<class T1, class T2>
 class CPUSolver {
 public:
 	AssignedStack I;
@@ -209,11 +225,12 @@ public:
 	~CPUSolver() {};
 
 	SearchStatistics MAC();
-	NetworkStack n_;
+	NetworkStack<T1, T2> n_;
 
 private:
 	HModel* hm_;
 	GModel* gm_;
 	//network n_;
 };
+
 }

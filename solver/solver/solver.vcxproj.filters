@@ -35,7 +35,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="myxml.xml" />
     <Xml Include="BMPath.xml">
       <Filter>资源文件</Filter>
     </Xml>

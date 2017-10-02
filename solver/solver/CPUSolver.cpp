@@ -38,6 +38,45 @@ void BitModel::Show() {
 		}
 	}
 }
+//////////////////////////////////////////////////////////////////////////
+
+void BitSetModel::initial(HModel *hm, GModel * gm) {
+	mds = hm->max_domain_size();
+	vs_size = hm->vars.size();
+
+	bsd.resize(vs_size, vector<vector<bitset<32>>>(mds, vector<bitset<32>>(vs_size)));
+	bd.resize(vs_size, 0);
+	for (size_t i = 0; i < gm->vars_.size(); i++) {
+		IntVar v = gm->vars_[i];
+		for (IntVarValues j(v); j(); ++j) {
+			bd[i] |= M1[j.val()];
+			GModel *s = (GModel*)gm->clone();
+			rel(*s, s->vars_[i] == j.val());
+			s->status();
+			for (size_t k = 0; k < s->vars_.size(); k++) {
+				IntVar vv = s->vars_[k];
+				for (IntVarValues l(vv); l(); ++l)
+					bsd[i][j.val()][k][l.val()] = 1;
+			}
+			delete s;
+		}
+	}
+}
+
+void BitSetModel::Show() {
+	for (size_t i = 0; i < bsd.size(); i++) {
+		for (size_t j = 0; j < bsd[i].size(); j++) {
+			printf("[%2d][%2d]: ", i, j);
+			for (size_t k = 0; k < bsd[i][j].size(); k++) {
+				cout << bsd[i][j][k] << " ";
+			}
+			cout << endl;
+		}
+	}
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////
 void AssignedStack::initial(HModel *m) {
 	m_ = m;
@@ -105,8 +144,8 @@ ostream & operator<<(ostream & os, IntVal & v_val) {
 	return os;
 }
 ////////////////////////////////////////////////////////////////////////////
-
-void NetworkStack::initial(HModel *hm, AssignedStack* I, GModel* gm) {
+template<>
+void NetworkStack<BitModel>::initial(HModel *hm, AssignedStack* I, GModel* gm) {
 	hm_ = hm;
 	I_ = I;
 	//bm_ = bm;
@@ -121,11 +160,13 @@ void NetworkStack::initial(HModel *hm, AssignedStack* I, GModel* gm) {
 	++top_;
 }
 
-SearchState NetworkStack::push_back(const IntVal & val) {
+template<>
+SearchState NetworkStack<BitModel>::push_back(const IntVal & val) {
 	return val.aop ? reduce_dom(val) : remove_value(val);
 }
 
-SearchState NetworkStack::reduce_dom(const IntVal & val) {
+template<>
+SearchState NetworkStack<BitModel>::reduce_dom(const IntVal & val) {
 	int pre = I_->size();
 	top_ = I_->size() + 1;
 	////若当前网络已经删除将要赋值的val
@@ -139,7 +180,8 @@ SearchState NetworkStack::reduce_dom(const IntVal & val) {
 	return S_BRANCH;
 }
 
-SearchState NetworkStack::remove_value(const IntVal & val) {
+template<>
+SearchState NetworkStack<BitModel>::remove_value(const IntVal & val) {
 	int pre = I_->size() + 1;
 	top_ = I_->size() + 1;
 	//--------------------制作r_---------------------------
@@ -171,25 +213,30 @@ SearchState NetworkStack::remove_value(const IntVal & val) {
 	return S_BRANCH;
 }
 
-vector<u32>& NetworkStack::nt_back() {
+template<>
+vector<u32>& NetworkStack<BitModel>::nt_back() {
 	return s_[top_ - 1];
 }
 
-void NetworkStack::pop_back() {
+template<>
+void NetworkStack<BitModel>::pop_back() {
 	--top_;
 }
 
-int NetworkStack::size()const {
+template<>
+int NetworkStack<BitModel>::size()const {
 	return s_.size();
 }
 
-IntVal NetworkStack::selectIntVal(const VarHeuristic vrh, const ValHeuristic vlh /*= VLH_MIN*/) {
+template<>
+IntVal NetworkStack<BitModel>::selectIntVal(const VarHeuristic vrh, const ValHeuristic vlh /*= VLH_MIN*/) {
 	int var = select_var(vrh);
 	int val = select_val(var, vlh);
 	return IntVal(var, val);
 }
 
-int NetworkStack::select_var(const VarHeuristic vrh) {
+template<>
+int NetworkStack<BitModel>::select_var(const VarHeuristic vrh) {
 	if (vrh == VRH_DOM) {
 		int smt = INT_MAX;
 		int idx = 0;
@@ -210,7 +257,8 @@ int NetworkStack::select_var(const VarHeuristic vrh) {
 	}
 }
 
-int NetworkStack::select_val(const int var, const ValHeuristic vlh) {
+template<>
+int NetworkStack<BitModel>::select_val(const int var, const ValHeuristic vlh) {
 	switch (vlh) {
 	case VLH_MIN:
 		return _32f1(s_[top_ - 1][var]);
@@ -219,17 +267,20 @@ int NetworkStack::select_val(const int var, const ValHeuristic vlh) {
 	}
 }
 
-void NetworkStack::restore(const int p) {
+template<>
+void NetworkStack<BitModel>::restore(const int p) {
 	top_ = p;
 }
 
 
 ////////////////////////////////////////////////////////////////////////
+template<class T>
 CPUSolver::CPUSolver(HModel *hm, GModel* gm) :hm_(hm), gm_(gm) {
 	I.initial(hm_);
 	n_.initial(hm_, &I, gm_);
 }
 
+template<class T>
 SearchStatistics CPUSolver::MAC() {
 	bool finished = false;
 	IntVal val;
@@ -261,6 +312,4 @@ SearchStatistics CPUSolver::MAC() {
 	return statistics;
 }
 //////////////////////////////////////////////////////////////////////////
-
-};
-
+}
