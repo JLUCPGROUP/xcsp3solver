@@ -38,6 +38,9 @@
     <Xml Include="BMPath.xml">
       <Filter>资源文件</Filter>
     </Xml>
+    <Xml Include="test1.xml">
+      <Filter>资源文件</Filter>
+    </Xml>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GModel.h">

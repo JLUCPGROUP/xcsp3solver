@@ -162,6 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <Xml Include="BMPath.xml" />
+    <Xml Include="test1.xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\model\model.vcxproj">

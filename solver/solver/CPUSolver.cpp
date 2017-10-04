@@ -39,41 +39,41 @@ void BitModel::Show() {
 	}
 }
 //////////////////////////////////////////////////////////////////////////
-
-void BitSetModel::initial(HModel *hm, GModel * gm) {
-	mds = hm->max_domain_size();
-	vs_size = hm->vars.size();
-
-	bsd.resize(vs_size, vector<vector<bitset<32>>>(mds, vector<bitset<32>>(vs_size)));
-	bd.resize(vs_size, 0);
-	for (size_t i = 0; i < gm->vars_.size(); i++) {
-		IntVar v = gm->vars_[i];
-		for (IntVarValues j(v); j(); ++j) {
-			bd[i] |= M1[j.val()];
-			GModel *s = (GModel*)gm->clone();
-			rel(*s, s->vars_[i] == j.val());
-			s->status();
-			for (size_t k = 0; k < s->vars_.size(); k++) {
-				IntVar vv = s->vars_[k];
-				for (IntVarValues l(vv); l(); ++l)
-					bsd[i][j.val()][k][l.val()] = 1;
-			}
-			delete s;
-		}
-	}
-}
-
-void BitSetModel::Show() {
-	for (size_t i = 0; i < bsd.size(); i++) {
-		for (size_t j = 0; j < bsd[i].size(); j++) {
-			printf("[%2d][%2d]: ", i, j);
-			for (size_t k = 0; k < bsd[i][j].size(); k++) {
-				cout << bsd[i][j][k] << " ";
-			}
-			cout << endl;
-		}
-	}
-}
+//
+//void BitSetModel::initial(HModel *hm, GModel * gm) {
+//	mds = hm->max_domain_size();
+//	vs_size = hm->vars.size();
+//
+//	bsd.resize(vs_size, vector<vector<bitset<32>>>(mds, vector<bitset<32>>(vs_size)));
+//	bd.resize(vs_size, 0);
+//	for (size_t i = 0; i < gm->vars_.size(); i++) {
+//		IntVar v = gm->vars_[i];
+//		for (IntVarValues j(v); j(); ++j) {
+//			bd[i] |= M1[j.val()];
+//			GModel *s = (GModel*)gm->clone();
+//			rel(*s, s->vars_[i] == j.val());
+//			s->status();
+//			for (size_t k = 0; k < s->vars_.size(); k++) {
+//				IntVar vv = s->vars_[k];
+//				for (IntVarValues l(vv); l(); ++l)
+//					bsd[i][j.val()][k][l.val()] = 1;
+//			}
+//			delete s;
+//		}
+//	}
+//}
+//
+//void BitSetModel::Show() {
+//	for (size_t i = 0; i < bsd.size(); i++) {
+//		for (size_t j = 0; j < bsd[i].size(); j++) {
+//			printf("[%2d][%2d]: ", i, j);
+//			for (size_t k = 0; k < bsd[i][j].size(); k++) {
+//				cout << bsd[i][j][k] << " ";
+//			}
+//			cout << endl;
+//		}
+//	}
+//}
 
 
 
@@ -144,172 +144,172 @@ ostream & operator<<(ostream & os, IntVal & v_val) {
 	return os;
 }
 ////////////////////////////////////////////////////////////////////////////
-template<>
-void NetworkStack<BitModel>::initial(HModel *hm, AssignedStack* I, GModel* gm) {
-	hm_ = hm;
-	I_ = I;
-	//bm_ = bm;
-	bm_.initial(hm, gm);
-	vs_size_ = hm_->vars.size();
-	mds_ = hm_->max_domain_size();
-	//初始化中间变量
-	r_ = bm_.bd;
-	s_.resize(vs_size_ + 1, vector<u32>(vs_size_, 0));
-	//将根节点与初始网络加入队列
-	s_[0].assign(r_.begin(), r_.end());
-	++top_;
-}
-
-template<>
-SearchState NetworkStack<BitModel>::push_back(const IntVal & val) {
-	return val.aop ? reduce_dom(val) : remove_value(val);
-}
-
-template<>
-SearchState NetworkStack<BitModel>::reduce_dom(const IntVal & val) {
-	int pre = I_->size();
-	top_ = I_->size() + 1;
-	////若当前网络已经删除将要赋值的val
-	//所有变量都要做一次按位运算
-	for (size_t i = 0; i < vs_size_; i++) {
-		s_[pre][i] = s_[pre - 1][i] & bm_.bsd[val.v][val.a][i];
-		//有变量域变空
-		if (s_[pre][i] == 0)
-			return S_FAILED;
-	}
-	return S_BRANCH;
-}
-
-template<>
-SearchState NetworkStack<BitModel>::remove_value(const IntVal & val) {
-	int pre = I_->size() + 1;
-	top_ = I_->size() + 1;
-	//--------------------制作r_---------------------------
-	r_.assign(vs_size_, 0);
-	//先删该点val
-	s_[pre - 1][val.v] &= M0[val.a];
-	if (s_[pre - 1][val.v] == 0)
-		return S_FAILED;
-
-	//遍历该变量中所的有值
-	for (size_t i = 0; i < hm_->vars[val.v]->vals.size(); ++i)
-		//若变量值已不存在，跳过
-		if (s_[pre - 1][val.v] & M1[i])
-			//生成subDom(x != a)
-			for (size_t j = 0; j < vs_size_; ++j)
-				r_[j] |= bm_.bsd[val.v][i][j];
-	//--------------------制作r_---------------------------
-	//所有变量都要做一次按位运算
-	for (size_t i = 0; i < vs_size_; i++) {
-		s_[pre][i] = r_[i] & s_[pre - 1][i];
-		//有变量域变空
-		if (r_[i] == 0)
-			return S_FAILED;
-	}
-	//--------------------制作r_---------------------------
-
-	//将AC的r_加入队列中
-	//AC成功
-	return S_BRANCH;
-}
-
-template<>
-vector<u32>& NetworkStack<BitModel>::nt_back() {
-	return s_[top_ - 1];
-}
-
-template<>
-void NetworkStack<BitModel>::pop_back() {
-	--top_;
-}
-
-template<>
-int NetworkStack<BitModel>::size()const {
-	return s_.size();
-}
-
-template<>
-IntVal NetworkStack<BitModel>::selectIntVal(const VarHeuristic vrh, const ValHeuristic vlh /*= VLH_MIN*/) {
-	int var = select_var(vrh);
-	int val = select_val(var, vlh);
-	return IntVal(var, val);
-}
-
-template<>
-int NetworkStack<BitModel>::select_var(const VarHeuristic vrh) {
-	if (vrh == VRH_DOM) {
-		int smt = INT_MAX;
-		int idx = 0;
-		int cnt;
-		for (size_t i = 0; i < vs_size_; ++i) {
-			if (!I_->assiged(i)) {
-				cnt = _mm_popcnt_u32(s_[top_ - 1][i]);
-				if (cnt < smt) {
-					smt = cnt;
-					idx = i;
-				}
-			}
-		}
-		return idx;
-	}
-	else if (vrh == VRH_LEX) {
-		return I_->size();
-	}
-}
-
-template<>
-int NetworkStack<BitModel>::select_val(const int var, const ValHeuristic vlh) {
-	switch (vlh) {
-	case VLH_MIN:
-		return _32f1(s_[top_ - 1][var]);
-	default:
-		break;
-	}
-}
-
-template<>
-void NetworkStack<BitModel>::restore(const int p) {
-	top_ = p;
-}
+//template<>
+//void NetworkStack<BitModel>::initial(HModel *hm, AssignedStack* I, GModel* gm) {
+//	hm_ = hm;
+//	I_ = I;
+//	//bm_ = bm;
+//	bm_.initial(hm, gm);
+//	vs_size_ = hm_->vars.size();
+//	mds_ = hm_->max_domain_size();
+//	//初始化中间变量
+//	r_ = bm_.bd;
+//	s_.resize(vs_size_ + 1, vector<u32>(vs_size_, 0));
+//	//将根节点与初始网络加入队列
+//	s_[0].assign(r_.begin(), r_.end());
+//	++top_;
+//}
+//
+//template<>
+//SearchState NetworkStack<BitModel>::push_back(const IntVal & val) {
+//	return val.aop ? reduce_dom(val) : remove_value(val);
+//}
+//
+//template<>
+//SearchState NetworkStack<BitModel>::reduce_dom(const IntVal & val) {
+//	int pre = I_->size();
+//	top_ = I_->size() + 1;
+//	////若当前网络已经删除将要赋值的val
+//	//所有变量都要做一次按位运算
+//	for (size_t i = 0; i < vs_size_; i++) {
+//		s_[pre][i] = s_[pre - 1][i] & bm_.bsd[val.v][val.a][i];
+//		//有变量域变空
+//		if (s_[pre][i] == 0)
+//			return S_FAILED;
+//	}
+//	return S_BRANCH;
+//}
+//
+//template<>
+//SearchState NetworkStack<BitModel>::remove_value(const IntVal & val) {
+//	int pre = I_->size() + 1;
+//	top_ = I_->size() + 1;
+//	//--------------------制作r_---------------------------
+//	r_.assign(vs_size_, 0);
+//	//先删该点val
+//	s_[pre - 1][val.v] &= M0[val.a];
+//	if (s_[pre - 1][val.v] == 0)
+//		return S_FAILED;
+//
+//	//遍历该变量中所的有值
+//	for (size_t i = 0; i < hm_->vars[val.v]->vals.size(); ++i)
+//		//若变量值已不存在，跳过
+//		if (s_[pre - 1][val.v] & M1[i])
+//			//生成subDom(x != a)
+//			for (size_t j = 0; j < vs_size_; ++j)
+//				r_[j] |= bm_.bsd[val.v][i][j];
+//	//--------------------制作r_---------------------------
+//	//所有变量都要做一次按位运算
+//	for (size_t i = 0; i < vs_size_; i++) {
+//		s_[pre][i] = r_[i] & s_[pre - 1][i];
+//		//有变量域变空
+//		if (r_[i] == 0)
+//			return S_FAILED;
+//	}
+//	//--------------------制作r_---------------------------
+//
+//	//将AC的r_加入队列中
+//	//AC成功
+//	return S_BRANCH;
+//}
+//
+//template<>
+//vector<u32>& NetworkStack<BitModel>::nt_back() {
+//	return s_[top_ - 1];
+//}
+//
+//template<>
+//void NetworkStack<BitModel>::pop_back() {
+//	--top_;
+//}
+//
+//template<>
+//int NetworkStack<BitModel>::size()const {
+//	return s_.size();
+//}
+//
+//template<>
+//IntVal NetworkStack<BitModel>::selectIntVal(const VarHeuristic vrh, const ValHeuristic vlh /*= VLH_MIN*/) {
+//	int var = select_var(vrh);
+//	int val = select_val(var, vlh);
+//	return IntVal(var, val);
+//}
+//
+//template<>
+//int NetworkStack<BitModel>::select_var(const VarHeuristic vrh) {
+//	if (vrh == VRH_DOM) {
+//		int smt = INT_MAX;
+//		int idx = 0;
+//		int cnt;
+//		for (size_t i = 0; i < vs_size_; ++i) {
+//			if (!I_->assiged(i)) {
+//				cnt = _mm_popcnt_u32(s_[top_ - 1][i]);
+//				if (cnt < smt) {
+//					smt = cnt;
+//					idx = i;
+//				}
+//			}
+//		}
+//		return idx;
+//	}
+//	else if (vrh == VRH_LEX) {
+//		return I_->size();
+//	}
+//}
+//
+//template<>
+//int NetworkStack<BitModel>::select_val(const int var, const ValHeuristic vlh) {
+//	switch (vlh) {
+//	case VLH_MIN:
+//		return _32f1(s_[top_ - 1][var]);
+//	default:
+//		break;
+//	}
+//}
+//
+//template<>
+//void NetworkStack<BitModel>::restore(const int p) {
+//	top_ = p;
+//}
 
 
 ////////////////////////////////////////////////////////////////////////
-template<class T>
-CPUSolver::CPUSolver(HModel *hm, GModel* gm) :hm_(hm), gm_(gm) {
-	I.initial(hm_);
-	n_.initial(hm_, &I, gm_);
-}
-
-template<class T>
-SearchStatistics CPUSolver::MAC() {
-	bool finished = false;
-	IntVal val;
-	SearchState state;
-	SearchStatistics statistics;
-
-	while (!finished) {
-		val = n_.selectIntVal(VRH_DOM, VLH_MIN);
-		++statistics.nodes;
-		I.push(val);
-		state = n_.push_back(val);
-
-		if ((state == S_BRANCH) && I.full()) {
-			std::cout << I << std::endl;
-			statistics.n_deep = n_.size();
-			++statistics.num_sol;
-			return statistics;
-		}
-
-		while (!(state == S_BRANCH) && !I.empty()) {
-			val = I.pop();
-			val.flop();
-			state = n_.push_back(val);
-		}
-
-		if (!(state == S_BRANCH))
-			finished = true;
-	}
-	return statistics;
-}
+//template<class T>
+//CPUSolver::CPUSolver(HModel *hm, GModel* gm) :hm_(hm), gm_(gm) {
+//	I.initial(hm_);
+//	n_.initial(hm_, &I, gm_);
+//}
+//
+//template<class T>
+//SearchStatistics CPUSolver::MAC() {
+//	bool finished = false;
+//	IntVal val;
+//	SearchState state;
+//	SearchStatistics statistics;
+//
+//	while (!finished) {
+//		val = n_.selectIntVal(VRH_DOM, VLH_MIN);
+//		++statistics.nodes;
+//		I.push(val);
+//		state = n_.push_back(val);
+//
+//		if ((state == S_BRANCH) && I.full()) {
+//			std::cout << I << std::endl;
+//			statistics.n_deep = n_.size();
+//			++statistics.num_sol;
+//			return statistics;
+//		}
+//
+//		while (!(state == S_BRANCH) && !I.empty()) {
+//			val = I.pop();
+//			val.flop();
+//			state = n_.push_back(val);
+//		}
+//
+//		if (!(state == S_BRANCH))
+//			finished = true;
+//	}
+//	return statistics;
+//}
 //////////////////////////////////////////////////////////////////////////
 }

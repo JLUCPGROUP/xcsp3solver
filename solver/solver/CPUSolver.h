@@ -1,6 +1,7 @@
 #pragma once
 #include <deque>
 #include <bitset>
+#include "Timer.h"
 #include "GModel.h"
 using namespace std;
 namespace cudacp {
@@ -27,13 +28,24 @@ const u32 M0[32] = {
 	0xFFFFFFF7, 0xFFFFFFFB, 0xFFFFFFFD, 0xFFFFFFFE
 };
 
-//解数量
+//最大论域的int表示大小
+enum ByteSize {
+	u1to32,
+	u33to64,
+	u65to96,
+	u97to128,
+	u129to160,
+	u161to192,
+	u193to224,
+	u225to256,
+	gt257
+};
+
 enum SolutionNum {
 	SN_ONE,
 	SN_ALL
 };
 
-//搜索方案
 enum SearchMethod {
 	SM_MAC,
 	SM_DFS,
@@ -41,7 +53,6 @@ enum SearchMethod {
 	SM_BIDFS
 };
 
-//搜索状态
 enum SearchState {
 	S_BRANCH
 	, S_FAILED
@@ -49,28 +60,27 @@ enum SearchState {
 	//,	S_BACKTRACK
 };
 
-//变量启发式
-enum VarHeuristic {
+namespace Heuristic {
+enum Var {
 	VRH_LEX,
 	VRH_DOM,
 	VRH_VWDEG
 };
 
-//值启发式
-enum ValHeuristic {
+enum Val {
 	VLH_MIN,
 	VLH_VWDEG
 };
+}
 
-//统计搜索状态
 struct SearchStatistics {
 	int num_sol = 0;
 	int nodes = 0;
-	int times = 0;
-	int n_deep = 0;
+	int64_t build_time = 0;
+	int64_t solve_time = 0;
+	//int n_deep = 0;
 };
 
-//左起第一个1的位置
 inline u32 _32f1(u32 v) {
 	static const char msb_256_table[256] =
 	{
@@ -101,9 +111,9 @@ inline u32 _32f1(u32 v) {
 
 class BitModel {
 public:
-	BitModel() {};
+	BitModel() { };
 	void initial(HModel *hm, GModel* gm);
-	virtual ~BitModel() {};
+	virtual ~BitModel() { };
 	vector<vector<vector<u32>>> bsd;
 	vector<u32> bd;
 	void Show();
@@ -113,37 +123,72 @@ private:
 	HModel *m_;
 	GModel *gm_;
 };
-
+template<class T>
 class BitSetModel {
 public:
-	BitSetModel() {};
-	void initial(HModel *hm, GModel* gm);
-	virtual ~BitSetModel() {};
-	vector<vector<vector<bitset<32>>>> bsd;
-	vector<bitset<32>> bd;
-	void Show();
+	BitSetModel() { };
+	void initial(HModel *hm, GModel* gm) {
+		mds = hm->max_domain_size();
+		vs_size = hm->vars.size();
+
+		bsd.resize(vs_size, vector<vector<T>>(mds, vector<T>(vs_size)));
+		bd.resize(vs_size, 0);
+		for (size_t i = 0; i < gm->vars_.size(); i++) {
+			IntVar v = gm->vars_[i];
+			for (IntVarValues j(v); j(); ++j) {
+				//bd[i] |= M1[j.val()];
+				bd[i][j.val()] = 1;
+				GModel *s = (GModel*)gm->clone();
+				rel(*s, s->vars_[i] == j.val());
+				s->status();
+				for (size_t k = 0; k < s->vars_.size(); k++) {
+					IntVar vv = s->vars_[k];
+					for (IntVarValues l(vv); l(); ++l)
+						bsd[i][j.val()][k][l.val()] = 1;
+				}
+				delete s;
+			}
+		}
+	}
+	virtual ~BitSetModel() { };
+	vector<vector<vector<T>>> bsd;
+	vector<T> bd;
+	void Show() {
+		cout << "----------------------bitDom----------------------" << endl;
+		for (size_t i = 0; i < bd.size(); i++)
+			cout << "bd[" << i << "]: " << bd[i] << endl;
+
+		cout << "----------------------bitSubDom----------------------" << endl;
+		for (size_t i = 0; i < bsd.size(); i++) {
+			for (size_t j = 0; j < bsd[i].size(); j++) {
+				printf("[%2d][%2d]: ", i, j);
+				for (size_t k = 0; k < bsd[i][j].size(); k++) {
+					cout << bsd[i][j][k] << " ";
+				}
+				cout << endl;
+			}
+		}
+	}
 	int mds;
 	int vs_size;
 protected:
 	GModel *gm_;
 };
-//
-//变量值取值或删值
+
 class IntVal {
 public:
 	int v;
 	int a;
 	bool aop = true;
-	IntVal() {};
-	IntVal(const int v, const int a, const bool aop = true) :v(v), a(a), aop(aop) {};
+	IntVal() { };
+	IntVal(const int v, const int a, const bool aop = true) :v(v), a(a), aop(aop) { };
 
 	const IntVal& operator=(const IntVal& rhs);
-	//翻转赋值符号
 	void flop();
 	inline bool operator==(const IntVal& rhs);
 	inline bool operator!=(const IntVal& rhs);
 	friend std::ostream& operator<< (std::ostream &os, IntVal &v_val);
-	~IntVal() {};
+	~IntVal() { };
 };
 
 namespace SearchNode {
@@ -154,13 +199,12 @@ const IntVal OutLastBroNode = IntVal(-2, -3);
 const IntVal OutLastNode = IntVal(-2, -4);
 };
 
-//赋值队列
 class AssignedStack {
 public:
-	AssignedStack() {};
+	AssignedStack() { };
 
 	void initial(HModel *m);
-	~AssignedStack() {};
+	~AssignedStack() { };
 	void push(IntVal& v_a);
 	const IntVal pop();
 	IntVal top() const;
@@ -184,53 +228,245 @@ protected:
 	int max_size_;
 };
 
-template<class T1, class T2>
+template< class T>
 class NetworkStack {
 public:
-	NetworkStack() {};
-	void initial(HModel *hm, AssignedStack* I, GModel* gm);
-	//考虑一次实例化后赋两个值的巧合
-	SearchState push_back(const IntVal& val);
-	SearchState reduce_dom(const IntVal& val);
-	SearchState remove_value(const IntVal& val);
-	vector<T2>& nt_back();
-	void pop_back();
+	NetworkStack() { };
+	void initial(HModel *hm, AssignedStack* I, GModel* gm) {
+		hm_ = hm;
+		I_ = I;
+		bm_.initial(hm, gm);
+		vs_size_ = hm_->vars.size();
+		mds_ = hm_->max_domain_size();
+		r_ = bm_.bd;
+		s_.resize(vs_size_ + 1, vector<T>(vs_size_, 0));
+		s_[0].assign(r_.begin(), r_.end());
+		++top_;
+	}
+
+	SearchState push_back(const IntVal& val) {
+		return val.aop ? reduce_dom(val) : remove_value(val);
+	}
+
+	SearchState reduce_dom(const IntVal& val) {
+		int pre = I_->size();
+		top_ = I_->size() + 1;
+		for (size_t i = 0; i < vs_size_; i++) {
+			s_[pre][i] = s_[pre - 1][i] & bm_.bsd[val.v][val.a][i];
+			if (!s_[pre][i].any())
+				return S_FAILED;
+		}
+		return S_BRANCH;
+	}
+
+	SearchState remove_value(const IntVal& val) {
+		int pre = I_->size() + 1;
+		top_ = I_->size() + 1;
+		r_.assign(vs_size_, 0);
+		s_[pre - 1][val.v][val.a] = 0;
+		if (!s_[pre - 1][val.v].any())
+			return S_FAILED;
+
+		for (size_t i = 0; i < hm_->vars[val.v]->vals.size(); ++i)
+			if (s_[pre - 1][val.v].test(i))
+				for (size_t j = 0; j < vs_size_; ++j)
+					r_[j] |= bm_.bsd[val.v][i][j];
+
+		for (size_t i = 0; i < vs_size_; ++i) {
+			s_[pre][i] = r_[i] & s_[pre - 1][i];
+			if (!s_[pre][i].any())
+				return S_FAILED;
+		}
+		return S_BRANCH;
+	}
+
+	vector<T>& nt_back() {
+		return s_[top_ - 1];
+	}
+
+	void pop_back() {
+		--top_;
+	}
 	//bool empty();
-	int size() const;
-	IntVal selectIntVal(const VarHeuristic vrh, const ValHeuristic vlh);
-	int select_var(const VarHeuristic vrh);
-	int select_val(const int var, const ValHeuristic vlh);
-	void restore(const int p);
-	~NetworkStack() {};
-	T1 bm_;
+	int size() const {
+		return s_.size();
+	}
+
+	IntVal selectIntVal(const Heuristic::Var vrh, const Heuristic::Val vlh) {
+		int var = select_var(vrh);
+		int val = select_val(var, vlh);
+		return IntVal(var, val);
+	}
+
+	int select_var(const Heuristic::Var vrh) {
+		if (vrh == Heuristic::VRH_DOM) {
+			int smt = INT_MAX;
+			int idx = 0;
+			int cnt;
+			for (size_t i = 0; i < vs_size_; ++i) {
+				if (!I_->assiged(i)) {
+					cnt = s_[top_ - 1][i].count();
+					if (cnt < smt) {
+						smt = cnt;
+						idx = i;
+					}
+				}
+			}
+			return idx;
+		}
+		else if (vrh == Heuristic::VRH_LEX) {
+			return I_->size();
+		}
+	}
+
+	int select_val(const int var, const Heuristic::Val vlh) {
+		switch (vlh) {
+		case Heuristic::VLH_MIN:
+			for (size_t i = 0; i < mds_; i++)
+				if (s_[top_ - 1][var].test(i))
+					return i;
+		default:
+			break;
+		}
+	}
+
+	void restore(const int p) {
+		top_ = p;
+	}
+
+	~NetworkStack() { };
+	BitSetModel<T> bm_;
 private:
 	HModel* hm_;
 	//bit model
 	//计算删值后网络bitDom的中间变量
-	vector<T2> r_;
+	vector<T> r_;
 	//赋值栈
 	AssignedStack *I_;
 	//网络栈
-	vector<vector<T2>> s_;
+	vector<vector<T>> s_;
 	int vs_size_;
 	int mds_;
 	int top_ = 0;
 };
 
-template<class T1, class T2>
+template<class T>
 class CPUSolver {
 public:
 	AssignedStack I;
-	CPUSolver(HModel *hm, GModel* gm);
-	~CPUSolver() {};
+	CPUSolver(HModel *hm, GModel* gm) :hm_(hm), gm_(gm) {
+		I.initial(hm_);
+		n_.initial(hm_, &I, gm_);
+	}
+	~CPUSolver() { };
 
-	SearchStatistics MAC();
-	NetworkStack<T1, T2> n_;
+	SearchStatistics MAC(Heuristic::Var varh, Heuristic::Val valh) {
+		bool finished = false;
+		IntVal val;
+		SearchState state;
+		SearchStatistics statistics;
+
+		while (!finished) {
+			val = n_.selectIntVal(varh, valh);
+			++statistics.nodes;
+			I.push(val);
+			state = n_.push_back(val);
+
+			if ((state == S_BRANCH) && I.full()) {
+				std::cout << I << std::endl;
+				//statistics.n_deep = n_.size();
+				++statistics.num_sol;
+				return statistics;
+			}
+
+			while (!(state == S_BRANCH) && !I.empty()) {
+				val = I.pop();
+				val.flop();
+				state = n_.push_back(val);
+			}
+
+			if (!(state == S_BRANCH))
+				finished = true;
+		}
+		return statistics;
+	}
+	NetworkStack<T> n_;
 
 private:
 	HModel* hm_;
 	GModel* gm_;
-	//network n_;
 };
+
+static ByteSize GetBitSetSize(int mds) {
+	switch (mds / 32) {
+	case 0:
+		return u1to32;
+		break;
+	case 1:
+		return u33to64;
+		break;
+	case 2:
+		return u65to96;
+		break;
+	case 3:
+		return u97to128;
+		break;
+	case 4:
+		return u129to160;
+		break;
+	case 5:
+		return u161to192;
+		break;
+	case 6:
+		return u193to224;
+		break;
+	case 7:
+		return u225to256;
+		break;
+	default:
+		return gt257;
+		break;
+	}
+};
+
+template<class T>
+SearchStatistics binary_search(HModel* hm, GModel *gm, Heuristic::Var varh, Heuristic::Val valh) {
+	SearchStatistics statistics;
+	Timer t2;
+	CPUSolver<T> s(hm, gm);
+	int64_t build_time = t2.elapsed();
+	Timer t3;
+	statistics = s.MAC(varh, valh);
+	int64_t solve_time = t3.elapsed();
+	statistics.build_time = build_time;
+	statistics.solve_time = solve_time;
+	return statistics;
+}
+
+static SearchStatistics StartSearch(HModel* hm, GModel *gm, Heuristic::Var varh, Heuristic::Val valh) {
+	switch (GetBitSetSize(hm->max_domain_size())) {
+	case u1to32:
+		return binary_search<bitset<32>>(hm, gm, varh, valh);
+	case u33to64:
+		return binary_search<bitset<64>>(hm, gm, varh, valh);
+	case u65to96:
+		return binary_search<bitset<96>>(hm, gm, varh, valh);
+	case u97to128:
+		return binary_search<bitset<128>>(hm, gm, varh, valh);
+	case u129to160:
+		return binary_search<bitset<160>>(hm, gm, varh, valh);
+	case u161to192:
+		return binary_search<bitset<192>>(hm, gm, varh, valh);
+	case u193to224:
+		return binary_search<bitset<224>>(hm, gm, varh, valh);
+	case u225to256:
+		return binary_search<bitset<256>>(hm, gm, varh, valh);
+	default:
+		cout << "out of limit!!" << endl;
+		SearchStatistics s;
+		s.build_time = -1;
+		return s;
+	}
+}
 
 }
