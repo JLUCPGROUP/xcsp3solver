@@ -27,7 +27,7 @@ int main() {
 	GModel* gm = new GModel();
 	BuildGModel(hm, gm);
 	
-	GModel* dgm = (GModel*)gm->clone();
+	GModel* dgm = static_cast<GModel*>(gm->clone());
 	branch(*dgm, dgm->vars_, INT_VAR_SIZE_MIN(), INT_VALUES_MIN());
 	DFS<GModel> ee(dgm);
 	delete dgm;
@@ -38,16 +38,15 @@ int main() {
 		cout << "nodes = " << ee.statistics().node << endl;
 		delete ss;
 	}
-	int64_t gecode_solve_time = t0.elapsed();
+	const int64_t gecode_solve_time = t0.elapsed();
 	cout << "---------------gecode solving---------------" << endl;
 	cout << "Gecode solve time = " << gecode_solve_time << endl;
 	
 
 	SAC1 sac1(gm);
-	bool result;
 	Timer t;
-	result = sac1.enforce();
-	int64_t sac_time = t.elapsed();
+	const bool result = sac1.enforce();
+	const int64_t sac_time = t.elapsed();
 	if (!result) {
 		cout << "UNSAC || SAC time = " << sac_time << endl;
 		cout << "--------------------end---------------------" << endl;
@@ -57,8 +56,7 @@ int main() {
 	}
 
 	cout << "------------------modeling------------------" << endl;
-	SearchStatistics statistics;
-	statistics = StartSearch(hm, gm, Heuristic::VRH_DOM, Heuristic::VLH_MIN);
+	const SearchStatistics statistics = StartSearch(hm, gm, Heuristic::VRH_DOM, Heuristic::VLH_MIN);
 	const string  slv_str = (statistics.num_sol > 0) ? "SAT!!" : "UNSAT";
 	delete hm;
 	delete gm;
