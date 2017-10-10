@@ -45,6 +45,7 @@ int main() {
 		s.AddConstraint(s.MakeAllowedAssignments(vs, ts));
 		ts.Clear();
 	}
+	cout << "-------------------------solve-------------------------" << endl;
 	//vector<SearchMonitor*> monitors;
 	DecisionBuilder* const db = s.MakePhase(vars, Solver::CHOOSE_MIN_SIZE, Solver::ASSIGN_MIN_VALUE);
 	s.NewSearch(db);

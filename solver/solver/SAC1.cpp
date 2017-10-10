@@ -28,27 +28,26 @@ bool SAC1::enforce() {
 		modified = false;
 		for (size_t i = 0; i < model->vars_.size(); i++) {
 			IntVar v = model->vars_[i];
-
-			for (IntVarValues j(v); j(); ++j) {
+			for (IntVarValues j(v); j();) {
 				GModel *s = (GModel*)model->clone();
-				rel(*s, s->vars_[i] == j.val());
+				const int a = j.val();
+				rel(*s, s->vars_[i] == a);
 				status = s->status();
 				//s->print();
-				delete s;
 				if (status == SS_FAILED) {
-					//printf("(%d, %d) not sat sac!\n", i, j.val());
-					rel(*model, v != j.val());
+					printf("(%d, %d) not sat sac!\n", i, a);
+					rel(*model, v != a);
 					status = model->status();
 					if (status == SS_FAILED) {
 						printf("failed\n");
 						return false;
 					}
-
 					modified = true;
 				}
 				else {
-					//printf("(%d, %d) is sac!\n", i, j.val());
+					++j;
 				}
+				delete s;
 			}
 		}
 

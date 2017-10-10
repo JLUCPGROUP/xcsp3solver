@@ -39,16 +39,15 @@ void HVar::Show() {
 	cout << endl;
 }
 
-HVar::~HVar() {}
+HVar::~HVar() { }
 ////////////////////////////////////////////////////////////////////
-HTab::HTab(const int id, const bool sem, vector<vector<int>>& ts,
-	vector<HVar*>& scp) :
+HTab::HTab(const int id, const bool sem, vector<vector<int>>& ts, vector<HVar*>& scp) :
 	id(id), semantics(sem) {
 	scope = scp;
-	int all_size = 1;
+	unsigned long all_size = 1;
 	for (auto i : scp)
 		all_size *= i->vals.size();
-	int sup_size;
+	unsigned long sup_size;
 
 	if (!sem)
 		sup_size = all_size - ts.size();
@@ -56,22 +55,30 @@ HTab::HTab(const int id, const bool sem, vector<vector<int>>& ts,
 		sup_size = ts.size();
 	vector<int> ori_t_(scope.size());
 	vector<int> std_t_(scope.size());
+	tmp_t_.resize(scope.size());
 	tuples.resize(sup_size, vector<int>(scope.size()));
 
-	int j = 0;
-	for (int i = 0; i < all_size; ++i) {
-		GetTuple(i, ori_t_, std_t_);
-		if (!sem) {
-			if (find(ts.begin(), ts.end(), ori_t_) == ts.end())
-				tuples[j++] = std_t_;
+	if (sem) {
+		for (size_t i = 0; i < sup_size; i++) {
+			GetSTDTuple(ts[i], std_t_);
+			tuples[i] = std_t_;
 		}
-		else {
-			if (find(ts.begin(), ts.end(), ori_t_) != ts.end())
-				tuples[j++] = std_t_;
+	}
+	else {
+		int j = 0;
+		for (int i = 0; (i < all_size) && (j <= sup_size); ++i) {
+			GetTuple(i, ori_t_, std_t_);
+			if (!sem) {
+				if (find(ts.begin(), ts.end(), ori_t_) == ts.end())
+					tuples[j++] = std_t_;
+			}
+			else {
+				if (find(ts.begin(), ts.end(), ori_t_) != ts.end())
+					tuples[j++] = std_t_;
+			}
 		}
 	}
 
-	tmp_t_.resize(scope.size());
 	semantics = true;
 	//	tuples = ts;
 }
@@ -176,8 +183,7 @@ void HModel::AddTab(const int id, const bool sem, vector<vector<int>>& ts, vecto
 	mas_ = max(mas_, t->scope.size());
 }
 
-void HModel::AddTab(const int id, const bool sem, vector<vector<int>>& ts,
-	vector<string>& scp) {
+void HModel::AddTab(const int id, const bool sem, vector<vector<int>>& ts, vector<string>& scp) {
 	vector<HVar*> scope(scp.size());
 	for (size_t i = 0; i < scp.size(); ++i)
 		scope[i] = var_n_[scp[i]];

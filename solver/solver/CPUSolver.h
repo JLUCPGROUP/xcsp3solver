@@ -398,7 +398,7 @@ private:
 };
 
 static ByteSize GetBitSetSize(int mds) {
-	switch (mds + 1 / 32) {
+	switch ((mds + 1 )/ 32) {
 	case 0:
 		return u1to32;
 		break;

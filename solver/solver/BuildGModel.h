@@ -17,8 +17,7 @@ static void BuildGModel(const HModel* h_model, GModel* g_model) {
 
 	for (size_t i = 0; i < h_model->vars.size(); ++i) {
 		HVar* v = h_model->vars[i];
-		g_model->vars_[i] = IntVar(*g_model,
-				IntSet(&*(v->vals.begin()), v->vals.size()));
+		g_model->vars_[i] = IntVar(*g_model, IntSet(&*(v->vals.begin()), v->vals.size()));
 	}
 
 	for (size_t i = 0; i < h_model->tabs.size(); ++i) {

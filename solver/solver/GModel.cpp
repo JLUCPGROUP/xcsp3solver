@@ -24,7 +24,10 @@ Space* GModel::copy(bool share) {
 }
 
 void GModel::print(void) const {
-	cout << vars_ << endl;
+	for (size_t i = 0; i < vars_.size(); i++) {
+		cout << "(" << i << " = " << vars_[i] << ") ";
+	}
+	cout << endl;
 }
 
 GModel::~GModel() {
