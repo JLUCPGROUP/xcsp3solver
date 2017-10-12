@@ -6,8 +6,9 @@
 #include "BMFileParser.h"
 #include "Timer.h"
 #include "ortools/constraint_solver/constraint_solveri.h"
-#include "ortools\base\logging.h"
-#include "ortools\util\tuple_set.h"
+#include "ortools/base/logging.h"
+#include "ortools/util/tuple_set.h"
+#include <complex>
 //#include <windows.h>
 using namespace cudacp;
 using namespace std;
@@ -16,9 +17,17 @@ using namespace operations_research;
 
 const string XPath = "BMPath.xml";
 
-class mysearchm :public SearchMonitor {
-	void EnterSearch() {
+class MiddleVariableIndexSelector :public Solver::IndexEvaluator1 {
+public:
+	MiddleVariableIndexSelector(const int64 n) :n_(n), mid_((n - 1) / 2) {}
+	~MiddleVariableIndexSelector() {}
+	int64 Run(int64 index) const
+	{
+		return abs(mid_ - n_);
 	}
+private:
+	const int64 n_;
+	const int64 mid_;
 };
 
 int main() {
@@ -47,6 +56,7 @@ int main() {
 	}
 	cout << "-------------------------solve-------------------------" << endl;
 	//vector<SearchMonitor*> monitors;
+	//MiddleVariableIndexSelector *misel = new MiddleVariableIndexSelector(s);
 	DecisionBuilder* const db = s.MakePhase(vars, Solver::CHOOSE_MIN_SIZE, Solver::ASSIGN_MIN_VALUE);
 	s.NewSearch(db);
 	Timer t;
@@ -58,7 +68,7 @@ int main() {
 
 	s.EndSearch();
 	cout << endl;
-	int64_t solve_time = t.elapsed();
+	const int64_t solve_time = t.elapsed();
 	delete hm;
 	cout << "solve time = " << solve_time << endl;
 	cout << "--------------------------end--------------------------" << endl;

@@ -71,6 +71,10 @@ enum Val {
 	VLH_MIN,
 	VLH_VWDEG
 };
+};
+
+namespace Limits {
+
 }
 
 struct SearchStatistics {
@@ -111,9 +115,9 @@ inline u32 _32f1(u32 v) {
 
 class BitModel {
 public:
-	BitModel() { };
+	BitModel() {};
 	void initial(HModel *hm, GModel* gm);
-	virtual ~BitModel() { };
+	virtual ~BitModel() {};
 	vector<vector<vector<u32>>> bsd;
 	vector<u32> bd;
 	void Show();
@@ -126,7 +130,7 @@ private:
 template<class T>
 class BitSetModel {
 public:
-	BitSetModel() { };
+	BitSetModel() {};
 	void initial(HModel *hm, GModel* gm) {
 		mds = hm->max_domain_size();
 		vs_size = hm->vars.size();
@@ -134,15 +138,15 @@ public:
 		bsd.resize(vs_size, vector<vector<T>>(mds, vector<T>(vs_size)));
 		bd.resize(vs_size, 0);
 		for (size_t i = 0; i < gm->vars_.size(); i++) {
-			IntVar v = gm->vars_[i];
+			const IntVar v = gm->vars_[i];
 			for (IntVarValues j(v); j(); ++j) {
 				//bd[i] |= M1[j.val()];
 				bd[i][j.val()] = 1;
-				GModel *s = (GModel*)gm->clone();
+				GModel *s = static_cast<GModel*>(gm->clone());
 				rel(*s, s->vars_[i] == j.val());
 				s->status();
 				for (size_t k = 0; k < s->vars_.size(); k++) {
-					IntVar vv = s->vars_[k];
+					const IntVar vv = s->vars_[k];
 					for (IntVarValues l(vv); l(); ++l)
 						bsd[i][j.val()][k][l.val()] = 1;
 				}
@@ -150,7 +154,7 @@ public:
 			}
 		}
 	}
-	virtual ~BitSetModel() { };
+	virtual ~BitSetModel() {};
 	vector<vector<vector<T>>> bsd;
 	vector<T> bd;
 	void Show() {
@@ -180,15 +184,15 @@ public:
 	int v;
 	int a;
 	bool aop = true;
-	IntVal() { };
-	IntVal(const int v, const int a, const bool aop = true) :v(v), a(a), aop(aop) { };
+	IntVal() {};
+	IntVal(const int v, const int a, const bool aop = true) :v(v), a(a), aop(aop) {};
 
 	const IntVal& operator=(const IntVal& rhs);
 	void flop();
 	inline bool operator==(const IntVal& rhs);
 	inline bool operator!=(const IntVal& rhs);
 	friend std::ostream& operator<< (std::ostream &os, IntVal &v_val);
-	~IntVal() { };
+	~IntVal() {};
 };
 
 namespace SearchNode {
@@ -201,10 +205,10 @@ const IntVal OutLastNode = IntVal(-2, -4);
 
 class AssignedStack {
 public:
-	AssignedStack() { };
+	AssignedStack() {};
 
 	void initial(HModel *m);
-	~AssignedStack() { };
+	~AssignedStack() {};
 	void push(IntVal& v_a);
 	const IntVal pop();
 	IntVal top() const;
@@ -231,7 +235,7 @@ protected:
 template< class T>
 class NetworkStack {
 public:
-	NetworkStack() { };
+	NetworkStack() {};
 	void initial(HModel *hm, AssignedStack* I, GModel* gm) {
 		hm_ = hm;
 		I_ = I;
@@ -249,7 +253,7 @@ public:
 	}
 
 	SearchState reduce_dom(const IntVal& val) {
-		int pre = I_->size();
+		const int pre = I_->size();
 		top_ = I_->size() + 1;
 		for (size_t i = 0; i < vs_size_; i++) {
 			s_[pre][i] = s_[pre - 1][i] & bm_.bsd[val.v][val.a][i];
@@ -260,7 +264,7 @@ public:
 	}
 
 	SearchState remove_value(const IntVal& val) {
-		int pre = I_->size() + 1;
+		const int pre = I_->size() + 1;
 		top_ = I_->size() + 1;
 		r_.assign(vs_size_, 0);
 		s_[pre - 1][val.v][val.a] = 0;
@@ -293,8 +297,8 @@ public:
 	}
 
 	IntVal selectIntVal(const Heuristic::Var vrh, const Heuristic::Val vlh) {
-		int var = select_var(vrh);
-		int val = select_val(var, vlh);
+		const int var = select_var(vrh);
+		const int val = select_val(var, vlh);
 		return IntVal(var, val);
 	}
 
@@ -302,10 +306,9 @@ public:
 		if (vrh == Heuristic::VRH_DOM) {
 			int smt = INT_MAX;
 			int idx = 0;
-			int cnt;
 			for (size_t i = 0; i < vs_size_; ++i) {
 				if (!I_->assiged(i)) {
-					cnt = s_[top_ - 1][i].count();
+					const int cnt = s_[top_ - 1][i].count();
 					if (cnt < smt) {
 						smt = cnt;
 						idx = i;
@@ -334,7 +337,7 @@ public:
 		top_ = p;
 	}
 
-	~NetworkStack() { };
+	~NetworkStack() {};
 	BitSetModel<T> bm_;
 private:
 	HModel* hm_;
@@ -356,24 +359,22 @@ public:
 	AssignedStack I;
 	CPUSolver(HModel *hm, GModel* gm) :hm_(hm), gm_(gm) {
 		I.initial(hm_);
-		n_.initial(hm_, &I, gm_);
+		n.initial(hm_, &I, gm_);
 	}
-	~CPUSolver() { };
+	~CPUSolver() {};
 
 	SearchStatistics MAC(Heuristic::Var varh, Heuristic::Val valh) {
 		bool finished = false;
-		IntVal val;
-		SearchState state;
 		SearchStatistics statistics;
 
 		while (!finished) {
-			val = n_.selectIntVal(varh, valh);
+			IntVal val = n.selectIntVal(varh, valh);
 			++statistics.nodes;
 			I.push(val);
-			state = n_.push_back(val);
+			SearchState state = n.push_back(val);
 
 			if ((state == S_BRANCH) && I.full()) {
-				std::cout << I << std::endl;
+				cout << I << endl;
 				//statistics.n_deep = n_.size();
 				++statistics.num_sol;
 				return statistics;
@@ -382,7 +383,7 @@ public:
 			while (!(state == S_BRANCH) && !I.empty()) {
 				val = I.pop();
 				val.flop();
-				state = n_.push_back(val);
+				state = n.push_back(val);
 			}
 
 			if (!(state == S_BRANCH))
@@ -390,7 +391,7 @@ public:
 		}
 		return statistics;
 	}
-	NetworkStack<T> n_;
+	NetworkStack<T> n;
 
 private:
 	HModel* hm_;
@@ -398,7 +399,7 @@ private:
 };
 
 static ByteSize GetBitSetSize(int mds) {
-	switch ((mds + 1 )/ 32) {
+	switch ((mds + 1) / 32) {
 	case 0:
 		return u1to32;
 		break;
