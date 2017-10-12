@@ -6,7 +6,7 @@
 #include "XCSP3PrintCallbacks.h"
 #include "BMFileParser.h"
 #include "Timer.h"
-#include "ortools/constraint_solver/constraint_solver.h"
+#include "ortools/constraint_solver/constraint_solveri.h"
 #include "ortools/base/logging.h"
 #include "ortools/util/tuple_set.h"
 #include <glog/logging.h>
@@ -16,29 +16,8 @@ using namespace std;
 using namespace operations_research;
 
 //#define LOGFILE
-
+const int64 time_limit = 20000;
 const string XPath = "BMPath.xml";
-
-////typedef ResultCallback1<int64, int64> IndexEvaluator1;
-//
-//class MiddleVariableIndexSelector : public Solver::IndexEvaluator1 {
-//public:
-//	MiddleVariableIndexSelector(const int64 n) : n_(n), middle_var_index_((n - 1) / 2) {}
-//	~MiddleVariableIndexSelector() {}
-//	int64 Run(const int64 index) {
-//		return abs(middle_var_index_ - index);
-//	}
-//
-//private:
-//	const int64 n_;
-//	const int64 middle_var_index_;
-//};
-
-enum FindSolution {
-	Finding = 0,
-	FindOne = 1,
-	Non = -1
-};
 
 namespace {
 
@@ -157,6 +136,11 @@ DecisionBuilder* MakeNQueensDecisionBuilder(Solver* const s, const int size, con
 }
 
 
+bool sac1(Solver )
+{
+	
+}
+
 int main() {
 	string bm_path;
 	if (FindBMPath(XPath))
@@ -194,23 +178,25 @@ int main() {
 	//DecisionBuilder* const db = s.MakePhase(vars, Solver::CHOOSE_MIN_SIZE, Solver::ASSIGN_MIN_VALUE);
 	//DecisionBuilder* const db = s.MakePhase(vars, index_evaluator, Solver::ASSIGN_CENTER_VALUE); //  ASSIGN_CENTER_VALUE, ASSIGN_MIN_VALUE
 	DecisionBuilder* const db = s.MakePhase(vars, Solver::CHOOSE_MIN_SIZE, Solver::ASSIGN_MIN_VALUE);
-	SearchLimit* limit = s.MakeTimeLimit(2000);
+	SearchLimit* limit = s.MakeTimeLimit(time_limit);
 	s.NewSearch(db, limit);
-	int64 solve_time = 0;
-	FindSolution find = Finding;
+	int64 time = 0;
 	if (s.NextSolution()) {
-		find = FindOne;
-		solve_time = s.wall_time();
+		time = s.wall_time();
 		for (auto v : vars)
 			cout << v->name() << " = " << v->Value() << " ";
 		cout << endl;
+		cout << "solve time = " << time << endl;
 	}
 	else {
-		find = Non;
+		time = s.wall_time();
+		if (time > s.GetTime(limit)) 
+			cout << "time out!!" << endl;
+		cout << "no solution! time =  " << s.wall_time() << endl;
 	}
+
 	s.EndSearch();
 
-	cout << "solve time = " << s.wall_time() << endl;
 	delete hm;
 	cout << "--------------------------end--------------------------" << endl;
 	return 0;
