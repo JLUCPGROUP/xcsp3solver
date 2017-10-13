@@ -14,7 +14,7 @@ class SAC1 {
 public:
 	GModel* model;
 	SAC1(GModel* model);
-	bool enforce();
+	bool enforce() const;
 	virtual ~SAC1();
 };
 

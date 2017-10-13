@@ -15,6 +15,7 @@ using namespace Gecode;
 using namespace std;
 //#define LOGFILE
 
+const int TimeLimit = 600000;
 const string XPath = "BMPath.xml";
 
 int main() {
@@ -26,22 +27,28 @@ int main() {
 	GetHModel(bm_path, hm);
 	GModel* gm = new GModel();
 	BuildGModel(hm, gm);
-	
-	GModel* dgm = static_cast<GModel*>(gm->clone());
-	branch(*dgm, dgm->vars_, INT_VAR_SIZE_MIN(), INT_VALUES_MIN());
-	DFS<GModel> ee(dgm);
-	delete dgm;
 
+	GModel* dgm = static_cast<GModel*>(gm->clone());
+	Search::TimeStop ts(2000);
+	Search::Options options;
+	options.stop = &ts;
+	branch(*dgm, dgm->vars_, INT_VAR_SIZE_MIN(), INT_VALUES_MIN());
+	DFS<GModel> ee(dgm, options);
+	delete dgm;
+	int find = -1;
 	Timer t0;
 	if (GModel* ss = ee.next()) {
 		ss->print();
+		find = 1;
 		cout << "nodes = " << ee.statistics().node << endl;
 		delete ss;
 	}
+	else 
+		find = 0;
 	const int64_t gecode_solve_time = t0.elapsed();
 	cout << "---------------gecode solving---------------" << endl;
 	cout << "Gecode solve time = " << gecode_solve_time << endl;
-	
+
 
 	SAC1 sac1(gm);
 	Timer t;

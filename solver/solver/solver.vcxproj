@@ -159,9 +159,13 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SAC1.cpp" />
     <ClCompile Include="test.cpp" />
+    <ClCompile Include="test2.cpp" />
+    <ClCompile Include="test4.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="BMPath.xml" />
+    <Xml Include="BMPath.xml">
+      <SubType>Designer</SubType>
+    </Xml>
     <Xml Include="test1.xml" />
   </ItemGroup>
   <ItemGroup>

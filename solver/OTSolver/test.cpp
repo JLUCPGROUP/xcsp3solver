@@ -16,7 +16,7 @@ using namespace std;
 using namespace operations_research;
 
 //#define LOGFILE
-const int64 time_limit = 20000;
+const int64 time_limit = 600000;
 const string XPath = "BMPath.xml";
 
 namespace {
@@ -136,7 +136,7 @@ DecisionBuilder* MakeNQueensDecisionBuilder(Solver* const s, const int size, con
 }
 
 
-bool sac1(Solver )
+bool sac1(Solver &s, vector<IntVar> vars)
 {
 	
 }
@@ -152,7 +152,7 @@ int main() {
 	//////////////////////////////////////////////////////////////////////////
 	Solver s("CPSimple");
 	vector<IntVar*> vars(hm->vars.size());
-
+	
 	for (auto v : hm->vars)
 		vars[v->id] = s.MakeIntVar(v->vals, v->name);
 
