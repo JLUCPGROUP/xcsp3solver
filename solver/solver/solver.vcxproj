@@ -152,12 +152,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+    <Text Include="Text.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CPUSolver.cpp" />
     <ClCompile Include="GModel.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SAC1.cpp" />
+    <ClCompile Include="sactest.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="test2.cpp" />
     <ClCompile Include="test4.cpp" />

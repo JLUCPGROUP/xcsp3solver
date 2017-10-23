@@ -1,6 +1,5 @@
 #pragma once
 #include <gecode/search.hh>
-#include <sstream>
 #include <fstream>
 #include <string>
 #include "XCSP3PrintCallbacks.h"
@@ -8,26 +7,30 @@
 #include "BMFileParser.h"
 #include "SAC1.h"
 #include "CPUSolver.h"
-//#include "Timer.h"
 #include <windows.h>
 using namespace cudacp;
 using namespace Gecode;
 using namespace std;
-#define LOGFILE
+//#define LOGFILE
 
 const string XPath = "BMPath.xml";
-const int TimeLimit = 600000;
+const int TimeLimit = 400000;
+const string bmp_root = "E:/Projects/benchmarks/xcsp/";
+const string bmp_ext = ".xml";
+int main(const int argc, char ** argv) {
 
-int main() {
-	const string bmp_root = "E:/Projects/benchmarks/xcsp/";
-	const string bmp_folder[3] = {
-		"Random-D-t065/rand-2-40-40-135-065-",
-		"Random-D-t080/rand-2-40-80-103-080-",
-		"Random-D-t090/rand-2-40-180-84-090-"
-	};
-	const string bmp_ext = ".xml";
+	//const string bmp_folder[3] = {
+	//	"Random-D-t065/rand-2-40-40-135-065-",
+	//	"Random-D-t080/rand-2-40-80-103-080-",
+	//	"Random-D-t090/rand-2-40-180-84-090-"
+	//};
 
-	for (size_t i = 1; i < 3; i++) {
+	if (argc <= 1) {
+		cout << "no argument" << endl;
+		return 0;
+	}
+
+	for (size_t i = 0; i < argc - 1; i++) {
 #ifdef LOGFILE
 		ofstream lofi;
 		const string bm_res = bmp_root + "res/" + bmp_folder[i].substr(0, bmp_folder[0].find("/")) + "bi.txt";
@@ -46,7 +49,8 @@ int main() {
 		for (size_t j = 0; j < 100; j++) {
 			char num[3];
 			sprintf_s(num, "%02d", j);
-			const string bm_path = bmp_root + bmp_folder[i] + num + bmp_ext;
+			//const string bm_path = bmp_root + bmp_folder[i] + num + bmp_ext;
+			const string bm_path = bmp_root + argv[i + 1] + num + bmp_ext;
 			cout << bm_path << endl;
 #ifdef LOGFILE
 			lofi << bm_path << endl;
@@ -64,7 +68,7 @@ int main() {
 			DFS<GModel> ee(dgm, options);
 			delete dgm;
 			int find = -1;
-			cout << "---------------gecode solving---------------" << endl;
+			//cout << "---------------gecode solving---------------" << endl;
 #ifdef LOGFILE
 			lofi << "---------------gecode solving---------------" << endl;
 #endif
@@ -76,8 +80,8 @@ int main() {
 				sol_cnt++;
 				const int64_t gecode_solve_time = t0.elapsed();
 				sum_bat += gecode_solve_time;
-				cout << "nodes = " << ee.statistics().node << endl;
-				cout << "Gecode solve time = " << gecode_solve_time << endl;
+				//cout << "nodes = " << ee.statistics().node << endl;
+				//cout << "Gecode solve time = " << gecode_solve_time << endl;
 #ifdef LOGFILE
 				lofi << "nodes = " << ee.statistics().node << endl;
 				lofi << "Gecode solve time = " << gecode_solve_time << endl;
@@ -90,9 +94,9 @@ int main() {
 				find = 0;
 				const int64_t gecode_solve_time = t0.elapsed();
 				sum_bat += gecode_solve_time;
-				cout << "no solution!" << endl;
-				cout << "nodes = " << ee.statistics().node << endl;
-				cout << "Gecode solve time = " << gecode_solve_time << endl;
+				//cout << "no solution!" << endl;
+				//cout << "nodes = " << ee.statistics().node << endl;
+				//cout << "Gecode solve time = " << gecode_solve_time << endl;
 #ifdef LOGFILE
 				lofi << "no solution!" << endl;
 				lofi << "nodes = " << ee.statistics().node << endl;
@@ -101,16 +105,16 @@ int main() {
 			}
 
 
-			//计算超时
-			if (find == -1) {
-				cout << "out of time!" << endl;
+			////计算超时
+			//if (find == -1) {
+			//	cout << "out of time!" << endl;
 #ifdef LOGFILE
 				lofi << "out of time!" << endl;
 #endif
-			}
+			//}
 
 			////////////////////////////////////////////////////////////////////////
-			cout << "------------------modeling------------------" << endl;
+			//cout << "------------------modeling------------------" << endl;
 #ifdef LOGFILE
 			lofi << "------------------modeling------------------" << endl;
 #endif
@@ -118,10 +122,11 @@ int main() {
 			Timer t;
 			const bool result = sac1.enforce();
 			const int64_t sac_time = t.elapsed();
+			sum_sact += sac_time;
 
 			if (!result) {
-				cout << "UNSAC || SAC time = " << sac_time << endl;
-				cout << "--------------------end---------------------" << endl;
+				//cout << "UNSAC || SAC time = " << sac_time << endl;
+				//cout << "--------------------end---------------------" << endl;
 #ifdef LOGFILE
 				lofi << "UNSAC || SAC time = " << sac_time << endl;
 				lofi << "--------------------end---------------------" << endl;
@@ -129,6 +134,9 @@ int main() {
 				delete hm;
 				delete gm;
 				continue;
+			}
+			else {
+				num_sac++;
 			}
 
 			const SearchStatistics statistics = StartSearch(hm, gm, Heuristic::VRH_DOM, Heuristic::VLH_MIN);
@@ -138,38 +146,38 @@ int main() {
 
 
 			sum_st += statistics.solve_time;
-			sum_sact += sac_time;
+			//sum_sact += sac_time;
 			sum_but += statistics.build_time;
 			sum_st += statistics.solve_time;
 			sum_nod += statistics.nodes;
 
-			cout << "SAC time = " << sac_time << "|| Build time = " << statistics.build_time << endl;
-			cout << "------------------solving-------------------" << endl;
-			cout << slv_str << "|| Solve time = " << statistics.solve_time << "|| nodes = " << statistics.nodes << endl;
-			cout << "------------------sleeping------------------" << endl;
+			//cout << "SAC time = " << sac_time << "|| Build time = " << statistics.build_time << endl;
+			//cout << "------------------solving-------------------" << endl;
+			//cout << slv_str << "|| Solve time = " << statistics.solve_time << "|| nodes = " << statistics.nodes << endl;
+			//cout << "------------------sleeping------------------" << endl;
 #ifdef LOGFILE
 			lofi << "SAC time = " << sac_time << "|| Build time = " << statistics.build_time << endl;
 			lofi << "----------------solving--------------------" << endl;
 			lofi << slv_str << "|| Solve time = " << statistics.solve_time << "|| nodes = " << statistics.nodes << endl;
 			lofi << "----------------sleeping--------------------" << endl;
 #endif
-			Sleep(1000);
+			//Sleep(1000);
 		}
 		cout << "---------------sum---------------" << endl;
 		cout << "Gecode solve time = " << sum_bat / sol_cnt <<
-			"|| time out = " << 100 - sol_cnt <<
-			"|| SAC time = " << sum_sact / 100 <<
-			"|| Build time = " << sum_but / 100 <<
-			"|| Solve time =" << sum_st / 100 <<
-			"|| nodes = " << sum_nod / 100 << endl;
+			" || time out = " << 100 - sol_cnt <<
+			" || SAC time = " << sum_sact / 100 <<
+			" || Build time = " << sum_but / num_sac <<
+			" || Solve time =" << sum_st / num_sac <<
+			" || nodes = " << sum_nod / num_sac << endl;
 #ifdef LOGFILE
 		lofi << "---------------sum---------------" << endl;
 		lofi << "Gecode solve time = " << sum_bat / sol_cnt <<
 			"|| time out = " << 100 - sol_cnt <<
 			"|| SAC time = " << sum_sact / 100 <<
-			"|| Build time = " << sum_but / 100 <<
-			"|| Solve time =" << sum_st / 100 <<
-			"|| nodes = " << sum_nod / 100 << endl;
+			"|| Build time = " << sum_but / num_sac <<
+			"|| Solve time =" << sum_st / num_sac <<
+			"|| nodes = " << sum_nod / num_sac << endl;
 
 		lofi.close();
 #endif

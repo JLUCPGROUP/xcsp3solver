@@ -126,7 +126,7 @@ const IntVal & IntVal::operator=(const IntVal & rhs) {
 	return *this;
 }
 
-void IntVal::flop() {
+void IntVal::flip() {
 	aop = !aop;
 }
 
@@ -302,7 +302,7 @@ ostream & operator<<(ostream & os, IntVal & v_val) {
 //
 //		while (!(state == S_BRANCH) && !I.empty()) {
 //			val = I.pop();
-//			val.flop();
+//			val.flip();
 //			state = n_.push_back(val);
 //		}
 //

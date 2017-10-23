@@ -190,8 +190,8 @@ void HModel::AddTab(const int id, const bool sem, vector<vector<int>>& ts, vecto
 	AddTab(id, sem, ts, scope);
 }
 
-void HModel::AddTab(HTab* t) {
-	AddTab((t->id + 1), t->semantics, t->tuples, t->scope);
+void HModel::AddTab(HTab* t, vector<string>& scp) {
+	AddTab((t->id + 1), t->semantics, t->tuples, scp);
 }
 
 void HModel::Show() {

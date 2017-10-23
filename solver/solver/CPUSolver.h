@@ -188,7 +188,7 @@ public:
 	IntVal(const int v, const int a, const bool aop = true) :v(v), a(a), aop(aop) {};
 
 	const IntVal& operator=(const IntVal& rhs);
-	void flop();
+	void flip();
 	inline bool operator==(const IntVal& rhs);
 	inline bool operator!=(const IntVal& rhs);
 	friend std::ostream& operator<< (std::ostream &os, IntVal &v_val);
@@ -382,7 +382,7 @@ public:
 
 			while (!(state == S_BRANCH) && !I.empty()) {
 				val = I.pop();
-				val.flop();
+				val.flip();
 				state = n.push_back(val);
 			}
 

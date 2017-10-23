@@ -335,12 +335,12 @@ void XCSP3PrintCallbacks::endConstraints() {
 
 
 void XCSP3PrintCallbacks::beginGroup(string id) {
-	cout << "   start group of constraint " << id << endl;
+	//cout << "   start group of constraint " << id << endl;
 }
 
 
 void XCSP3PrintCallbacks::endGroup() {
-	cout << "   end group of constraint" << endl;
+	//cout << "   end group of constraint" << endl;
 }
 
 
@@ -404,9 +404,12 @@ void XCSP3PrintCallbacks::buildConstraintExtension(string id, XVariable *variabl
 
 
 // string id, vector<XVariable *> list, bool support, bool hasStar
-void XCSP3PrintCallbacks::buildConstraintExtensionAs(string id, vector<XVariable *>, bool, bool) {
-	cout << "\n    extension constraint similar as previous one: " << id << endl;
-	hm->AddTab(hm->tabs[con_cnt - 1]);
+void XCSP3PrintCallbacks::buildConstraintExtensionAs(string id, vector<XVariable *> list, bool, bool) {
+	//cout << "\n    extension constraint similar as previous one: " << id << endl;
+	vector<string> scope(list.size());
+	for (size_t i = 0; i < scope.size(); ++i)
+		scope[i] = list[i]->id;
+	hm->AddTab(hm->tabs[con_cnt - 1], scope);
 	con_cnt++;
 }
 
