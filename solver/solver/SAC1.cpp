@@ -1,9 +1,9 @@
 /*
- * SAC1.cpp
- *
- *  Created on: 2016年11月17日
- *      Author: leezear
- */
+* SAC1.cpp
+*
+*  Created on: 2016年11月17日
+*      Author: leezear
+*/
 
 #include "SAC1.h"
 using namespace Gecode;
@@ -27,14 +27,14 @@ bool SAC1::enforce() const {
 
 	do {
 		modified = false;
-		for (int i = 0; i < model->vars_.size(); i++) {
-			IntVar v = model->vars_[i];
+		for (int i = 0; i < model->vs.size(); i++) {
+			IntVar v = model->vs[i];
 			Int::IntView view(v);
 			//for (IntVarValues k(view); k();++k) {
 			for (int j = view.min(); j <= view.max(); ++j) {
 				if (view.in(j)) {
 					GModel *s = static_cast<GModel*>(model->clone());
-					Int::IntView sv(s->vars_[i]);
+					Int::IntView sv(s->vs[i]);
 					sv.eq(*s, j);
 					status = s->status();
 					if (status == SS_FAILED) {
@@ -63,13 +63,13 @@ bool SAC1::enforce() const {
 //
 //	do {
 //		modified = false;
-//		for (int i = 0; i < model->vars_.size(); i++) {
-//			IntVar v = model->vars_[i];
+//		for (int i = 0; i < model->vs.size(); i++) {
+//			IntVar v = model->vs[i];
 //
 //			for (int j = v.min(); j <= v.max(); ++j) {
 //				if (v.in(j)) {
 //					GModel *s = static_cast<GModel*>(model->clone());
-//					rel(*s, s->vars_[i] == j);
+//					rel(*s, s->vs[i] == j);
 //					status = s->status();
 //					if (status == SS_FAILED) {
 //						rel(*model, v != j);
@@ -97,12 +97,12 @@ bool SAC1::enforce() const {
 //		return false;
 //	do {
 //		modified = false;
-//		for (size_t i = 0; i < model->vars_.size(); i++) {
-//			IntVar v = model->vars_[i];
+//		for (size_t i = 0; i < model->vs.size(); i++) {
+//			IntVar v = model->vs[i];
 //			for (IntVarValues j(v); j();) {
 //				GModel *s = static_cast<GModel*>(model->clone());
 //				const int a = j.val();
-//				rel(*s, s->vars_[i] == a);
+//				rel(*s, s->vs[i] == a);
 //				status = s->status();
 //				//s->print();
 //				if (status == SS_FAILED) {

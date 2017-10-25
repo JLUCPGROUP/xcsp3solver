@@ -63,12 +63,15 @@ enum SearchState {
 namespace Heuristic {
 enum Var {
 	VRH_LEX,
-	VRH_DOM,
+	VRH_MIN_DOM,
 	VRH_VWDEG
 };
 
 enum Val {
 	VLH_MIN,
+	VLH_MIN_DOM,
+	VLH_MIN_INC,
+	VLH_MAX_INC,
 	VLH_VWDEG
 };
 };
@@ -82,6 +85,7 @@ struct SearchStatistics {
 	int nodes = 0;
 	int64_t build_time = 0;
 	int64_t solve_time = 0;
+	bool time_out = false;
 	//int n_deep = 0;
 };
 
@@ -113,40 +117,26 @@ inline u32 _32f1(u32 v) {
 
 };
 
-class BitModel {
-public:
-	BitModel() {};
-	void initial(HModel *hm, GModel* gm);
-	virtual ~BitModel() {};
-	vector<vector<vector<u32>>> bsd;
-	vector<u32> bd;
-	void Show();
-	int mds;
-	int vs_size;
-private:
-	HModel *m_;
-	GModel *gm_;
-};
 template<class T>
 class BitSetModel {
 public:
 	BitSetModel() {};
-	void initial(HModel *hm, GModel* gm) {
-		mds = hm->max_domain_size();
-		vs_size = hm->vars.size();
+	void initial(GModel* gm) {
+		mds = gm->mds;
+		vs_size = gm->vs.size();
 
 		bsd.resize(vs_size, vector<vector<T>>(mds, vector<T>(vs_size)));
 		bd.resize(vs_size, 0);
-		for (size_t i = 0; i < gm->vars_.size(); i++) {
-			const IntVar v = gm->vars_[i];
+		for (size_t i = 0; i < gm->vs.size(); i++) {
+			const IntVar v = gm->vs[i];
 			for (IntVarValues j(v); j(); ++j) {
 				//bd[i] |= M1[j.val()];
 				bd[i][j.val()] = 1;
 				GModel *s = static_cast<GModel*>(gm->clone());
-				rel(*s, s->vars_[i] == j.val());
+				rel(*s, s->vs[i] == j.val());
 				s->status();
-				for (size_t k = 0; k < s->vars_.size(); k++) {
-					const IntVar vv = s->vars_[k];
+				for (size_t k = 0; k < s->vs.size(); k++) {
+					const IntVar vv = s->vs[k];
 					for (IntVarValues l(vv); l(); ++l)
 						bsd[i][j.val()][k][l.val()] = 1;
 				}
@@ -189,6 +179,7 @@ public:
 
 	const IntVal& operator=(const IntVal& rhs);
 	void flip();
+	IntVal next() const;
 	inline bool operator==(const IntVal& rhs);
 	inline bool operator!=(const IntVal& rhs);
 	friend std::ostream& operator<< (std::ostream &os, IntVal &v_val);
@@ -207,10 +198,10 @@ class AssignedStack {
 public:
 	AssignedStack() {};
 
-	void initial(HModel *m);
+	void initial(GModel* m);
 	~AssignedStack() {};
 	void push(IntVal& v_a);
-	const IntVal pop();
+	IntVal pop();
 	IntVal top() const;
 	int size() const;
 	int capacity() const;
@@ -224,8 +215,6 @@ public:
 	friend std::ostream& operator<< (std::ostream &os, AssignedStack* I);
 
 protected:
-
-	HModel *m_;
 	vector<IntVal> vals_;
 	vector<bool> asnd_;
 	int top_ = 0;
@@ -236,12 +225,12 @@ template< class T>
 class NetworkStack {
 public:
 	NetworkStack() {};
-	void initial(HModel *hm, AssignedStack* I, GModel* gm) {
-		hm_ = hm;
+	void initial(GModel* gm, AssignedStack* I) {
+		gm_ = gm;
 		I_ = I;
-		bm_.initial(hm, gm);
-		vs_size_ = hm_->vars.size();
-		mds_ = hm_->max_domain_size();
+		bm_.initial(gm);
+		vs_size_ = gm->vs.size();
+		mds_ = gm->mds;
 		r_ = bm_.bd;
 		s_.resize(vs_size_ + 1, vector<T>(vs_size_, 0));
 		s_[0].assign(r_.begin(), r_.end());
@@ -271,7 +260,7 @@ public:
 		if (!s_[pre - 1][val.v].any())
 			return S_FAILED;
 
-		for (size_t i = 0; i < hm_->vars[val.v]->vals.size(); ++i)
+		for (size_t i = gm_->vs[val.v].min(); i <= gm_->vs[val.v].max(); ++i)
 			if (s_[pre - 1][val.v].test(i))
 				for (size_t j = 0; j < vs_size_; ++j)
 					r_[j] |= bm_.bsd[val.v][i][j];
@@ -303,7 +292,7 @@ public:
 	}
 
 	int select_var(const Heuristic::Var vrh) {
-		if (vrh == Heuristic::VRH_DOM) {
+		if (vrh == Heuristic::VRH_MIN_DOM) {
 			int smt = INT_MAX;
 			int idx = 0;
 			for (size_t i = 0; i < vs_size_; ++i) {
@@ -325,9 +314,80 @@ public:
 	int select_val(const int var, const Heuristic::Val vlh) {
 		switch (vlh) {
 		case Heuristic::VLH_MIN:
-			for (size_t i = 0; i < mds_; i++)
+			for (size_t i = 0; i < mds_; ++i)
 				if (s_[top_ - 1][var].test(i))
 					return i;
+			break;
+		case Heuristic::VLH_MIN_INC:
+		{
+			int min_delt = INT_MAX;
+			int selected = 0;
+			for (size_t i = 0; i < mds_; ++i) {
+				int delete_nodes = 0;
+				if (s_[top_ - 1][var].test(i)) {
+					//统计应用该值(var, i)后网络会删多少个值
+					for (size_t j = 0; j < vs_size_; ++j) {
+						tmp_ = s_[top_ - 1][j] & bm_.bsd[var][i][j];
+						delete_nodes += s_[top_ - 1][j].count() - tmp_.count();
+					}
+					if (min_delt > delete_nodes) {
+						min_delt = delete_nodes;
+						selected = i;
+					}
+
+				}
+
+			}
+			return selected;
+		}
+		case Heuristic::VLH_MAX_INC:
+		{
+			int max_delt = INT_MIN;
+			int selected = 0;
+			for (size_t i = 0; i < mds_; ++i) {
+				int delete_nodes = 0;
+				if (s_[top_ - 1][var].test(i)) {
+					//统计应用该值(var, i)后网络会删多少个值
+					for (size_t j = 0; j < vs_size_; ++j) {
+						tmp_ = s_[top_ - 1][j] & bm_.bsd[var][i][j];
+						delete_nodes += s_[top_ - 1][j].count() - tmp_.count();
+					}
+					if (max_delt < delete_nodes) {
+						max_delt = delete_nodes;
+						selected = i;
+					}
+
+				}
+
+			}
+			return selected;
+		}
+		break;
+		case Heuristic::VLH_MIN_DOM:
+		{
+			int min_delt = INT_MAX;
+			int selected = 0;
+			for (size_t i = 0; i < mds_; ++i) {
+				if (s_[top_ - 1][var].test(i)) {
+					//统计应用该值(var, i)后网络会删多少个值
+					for (size_t j = 0; j < vs_size_; ++j) {
+						tmp_ = s_[top_ - 1][j] & bm_.bsd[var][i][j];
+
+						if (tmp_.count() == 0)
+							return i;
+
+						if (min_delt > tmp_.count()) {
+							min_delt = tmp_.count();
+							selected = i;
+						}
+					}
+
+				}
+
+			}
+			return selected;
+		}
+		break;
 		default:
 			break;
 		}
@@ -340,7 +400,7 @@ public:
 	~NetworkStack() {};
 	BitSetModel<T> bm_;
 private:
-	HModel* hm_;
+	GModel* gm_;
 	//bit model
 	//计算删值后网络bitDom的中间变量
 	vector<T> r_;
@@ -348,6 +408,7 @@ private:
 	AssignedStack *I_;
 	//网络栈
 	vector<vector<T>> s_;
+	T tmp_;
 	int vs_size_;
 	int mds_;
 	int top_ = 0;
@@ -357,48 +418,58 @@ template<class T>
 class CPUSolver {
 public:
 	AssignedStack I;
-	CPUSolver(HModel *hm, GModel* gm) :hm_(hm), gm_(gm) {
-		I.initial(hm_);
-		n.initial(hm_, &I, gm_);
+	CPUSolver(GModel* gm) :gm_(gm) {
+		I.initial(gm_);
+		n.initial(gm_, &I);
 	}
 	~CPUSolver() {};
 
-	SearchStatistics MAC(Heuristic::Var varh, Heuristic::Val valh) {
+	SearchStatistics MAC(const Heuristic::Var varh, const Heuristic::Val valh, const int64_t time_limit) {
+		Timer t;
 		bool finished = false;
 		SearchStatistics statistics;
 
 		while (!finished) {
 			IntVal val = n.selectIntVal(varh, valh);
-			++statistics.nodes;
+
+			if (t.elapsed() > time_limit) {
+				cout << t.elapsed() << endl;
+				statistics.time_out = true;
+				return statistics;
+			}
+
 			I.push(val);
+			++statistics.nodes;
 			SearchState state = n.push_back(val);
 
 			if ((state == S_BRANCH) && I.full()) {
 				cout << I << endl;
-				//statistics.n_deep = n_.size();
 				++statistics.num_sol;
+				statistics.solve_time = t.elapsed();
+				//state = S_FAILED;
 				return statistics;
 			}
 
 			while (!(state == S_BRANCH) && !I.empty()) {
 				val = I.pop();
 				val.flip();
+				//++statistics.nodes;
 				state = n.push_back(val);
 			}
 
 			if (!(state == S_BRANCH))
 				finished = true;
 		}
+		statistics.solve_time = t.elapsed();
 		return statistics;
 	}
 	NetworkStack<T> n;
 
 private:
-	HModel* hm_;
 	GModel* gm_;
 };
 
-static ByteSize GetBitSetSize(int mds) {
+static ByteSize GetBitSetSize(const int mds) {
 	switch ((mds + 1) / 32) {
 	case 0:
 		return u1to32;
@@ -431,37 +502,33 @@ static ByteSize GetBitSetSize(int mds) {
 };
 
 template<class T>
-SearchStatistics binary_search(HModel* hm, GModel *gm, Heuristic::Var varh, Heuristic::Val valh) {
-	SearchStatistics statistics;
+SearchStatistics binary_search(GModel *gm, Heuristic::Var varh, Heuristic::Val valh, const int64_t time_limit) {
 	Timer t2;
-	CPUSolver<T> s(hm, gm);
-	int64_t build_time = t2.elapsed();
-	Timer t3;
-	statistics = s.MAC(varh, valh);
-	int64_t solve_time = t3.elapsed();
+	CPUSolver<T> s(gm);
+	const int64_t build_time = t2.elapsed();
+	SearchStatistics statistics = s.MAC(varh, valh, time_limit);
 	statistics.build_time = build_time;
-	statistics.solve_time = solve_time;
 	return statistics;
 }
 
-static SearchStatistics StartSearch(HModel* hm, GModel *gm, Heuristic::Var varh, Heuristic::Val valh) {
-	switch (GetBitSetSize(hm->max_domain_size())) {
+static SearchStatistics StartSearch(GModel *gm, const Heuristic::Var varh, const Heuristic::Val valh, const int64_t time_limit) {
+	switch (GetBitSetSize(gm->mds)) {
 	case u1to32:
-		return binary_search<bitset<32>>(hm, gm, varh, valh);
+		return binary_search<bitset<32>>(gm, varh, valh, time_limit);
 	case u33to64:
-		return binary_search<bitset<64>>(hm, gm, varh, valh);
+		return binary_search<bitset<64>>(gm, varh, valh, time_limit);
 	case u65to96:
-		return binary_search<bitset<96>>(hm, gm, varh, valh);
+		return binary_search<bitset<96>>(gm, varh, valh, time_limit);
 	case u97to128:
-		return binary_search<bitset<128>>(hm, gm, varh, valh);
+		return binary_search<bitset<128>>(gm, varh, valh, time_limit);
 	case u129to160:
-		return binary_search<bitset<160>>(hm, gm, varh, valh);
+		return binary_search<bitset<160>>(gm, varh, valh, time_limit);
 	case u161to192:
-		return binary_search<bitset<192>>(hm, gm, varh, valh);
+		return binary_search<bitset<192>>(gm, varh, valh, time_limit);
 	case u193to224:
-		return binary_search<bitset<224>>(hm, gm, varh, valh);
+		return binary_search<bitset<224>>(gm, varh, valh, time_limit);
 	case u225to256:
-		return binary_search<bitset<256>>(hm, gm, varh, valh);
+		return binary_search<bitset<256>>(gm, varh, valh, time_limit);
 	default:
 		cout << "out of limit!!" << endl;
 		SearchStatistics s;

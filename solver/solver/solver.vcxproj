@@ -158,6 +158,7 @@
     <ClCompile Include="CPUSolver.cpp" />
     <ClCompile Include="GModel.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="main2.cpp" />
     <ClCompile Include="SAC1.cpp" />
     <ClCompile Include="sactest.cpp" />
     <ClCompile Include="test.cpp" />

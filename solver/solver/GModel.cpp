@@ -1,9 +1,9 @@
 /*
- * GModel.cpp
- *
- *  Created on: 2017年9月27日
- *      Author: leezear
- */
+* GModel.cpp
+*
+*  Created on: 2017年9月27日
+*      Author: leezear
+*/
 
 #include "GModel.h"
 
@@ -15,8 +15,8 @@ GModel::GModel() {
 }
 
 GModel::GModel(bool share, GModel& s) :
-		Space(share, s) {
-	vars_.update(*this, share, s.vars_);
+	Space(share, s) {
+	vs.update(*this, share, s.vs);
 }
 
 Space* GModel::copy(bool share) {
@@ -24,8 +24,8 @@ Space* GModel::copy(bool share) {
 }
 
 void GModel::print(void) const {
-	for (size_t i = 0; i < vars_.size(); i++) {
-		cout << "(" << i << " = " << vars_[i] << ") ";
+	for (size_t i = 0; i < vs.size(); i++) {
+		cout << "(" << i << " = " << vs[i] << ") ";
 	}
 	cout << endl;
 }
